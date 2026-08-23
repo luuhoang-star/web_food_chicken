@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none">
+    <defs>
+        <linearGradient id="msg-bg-gradient" x1="8" y1="56" x2="56" y2="8" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stop-color="#00C6FF"/>
+            <stop offset="55%" stop-color="#0078FF"/>
+            <stop offset="100%" stop-color="#A033FF"/>
+        </linearGradient>
+    </defs>
+    <!-- Background Circle -->
+    <circle cx="32" cy="32" r="30" fill="url(#msg-bg-gradient)"/>
+    <!-- Official Messenger Speech Bubble & Lightning Bolt -->
+    <path fill="#FFFFFF" fill-rule="evenodd" clip-rule="evenodd" d="M32 13C21.507 13 13 20.835 13 30.5c0 5.538 2.724 10.468 7 13.725V49.5a.7.7 0 0 0 1.078.594L26.54 46.8c1.693.456 3.535.7 5.46.7 10.493 0 19-7.835 19-17.5S42.493 13 32 13zm2.14 21.884l-4.787-5.111-9.341 5.111 10.274-10.912 4.912 5.111 9.216-5.111-10.274 10.912z"/>
+</svg>

@@ -209,3 +209,10 @@ test('quality page renders dynamic commitments and sauces from database', functi
     $response->assertSee('CAM KẾT CHẤT LƯỢNG');
     $response->assertSee('3 TIÊU CHUẨN PHỤC VỤ HÀNG ĐẦU');
 });
+
+test('floating contact widget renders messenger and zalo chat buttons', function () {
+    $response = $this->get(route('home'));
+    $response->assertStatus(200);
+    $response->assertSee('zalo.me/0973797151');
+    $response->assertSee('m.me/luuhoang.it');
+});

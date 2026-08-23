@@ -38,6 +38,12 @@ class SiteSettingSeeder extends Seeder
             ['key' => 'social_tiktok', 'value' => 'https://tiktok.com', 'group' => 'social', 'type' => 'text', 'description' => 'Link TikTok'],
             ['key' => 'copyright', 'value' => '© 2026 GAO - Gà Sốt & Cơm Hà Nội. All rights reserved.', 'group' => 'footer', 'type' => 'text', 'description' => 'Bản quyền'],
             ['key' => 'footer_slogan', 'value' => 'Thực đơn gà sốt đậm vị chuẩn Hà Nội', 'group' => 'footer', 'type' => 'text', 'description' => 'Slogan chân trang'],
+
+            // Chat & Support
+            ['key' => 'contact_zalo', 'value' => '0973797151', 'group' => 'contact', 'type' => 'text', 'description' => 'Số Zalo tư vấn'],
+            ['key' => 'contact_zalo_url', 'value' => 'https://zalo.me/0973797151', 'group' => 'contact', 'type' => 'text', 'description' => 'Đường dẫn Chat Zalo'],
+            ['key' => 'contact_messenger_url', 'value' => 'https://m.me/luuhoang.it', 'group' => 'contact', 'type' => 'text', 'description' => 'Đường dẫn Chat Messenger'],
+            ['key' => 'contact_facebook_url', 'value' => 'https://facebook.com/luuhoang.it', 'group' => 'contact', 'type' => 'text', 'description' => 'Đường dẫn Trang cá nhân Facebook'],
         ];
 
         foreach ($settings as $setting) {

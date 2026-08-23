@@ -108,6 +108,9 @@
     <!-- Mobile Sticky Action Bar -->
     @include('partials.mobile-sticky-bar')
 
+    <!-- Floating Contact Widget (Messenger & Zalo) -->
+    @include('partials.floating-contact')
+
     <!-- Floating Cart Button (Desktop) -->
     @include('partials.floating-cart')
 
