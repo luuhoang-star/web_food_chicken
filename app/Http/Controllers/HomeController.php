@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Category;
+use App\Models\Benefit;
+use App\Models\Combo;
+use App\Models\Hero;
 use App\Models\Product;
 use App\Models\Sauce;
-use App\Models\SpiceLevel;
-use App\Models\Topping;
+use App\Models\Testimonial;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Schema;
 
 class HomeController extends Controller
 {
@@ -16,54 +18,25 @@ class HomeController extends Controller
      */
     public function index(): View
     {
-        $categories = Category::where('is_active', true)
-            ->withCount(['products' => function ($query) {
-                $query->where('is_available', true);
-            }])
-            ->orderBy('order')
-            ->get();
+        return view('pages.home', [
+            'hero' => Schema::hasTable('heroes') ? Hero::active()->ordered()->first() : null,
+            'featuredSauces' => Schema::hasTable('sauces') ? Sauce::active()->available()->orderBy('id')->limit(4)->get() : collect(),
+            'popularProducts' => Schema::hasTable('products') ? Product::with(['category', 'sauce', 'sauces'])->available()->hot()->orderBy('order')->limit(8)->get() : collect(),
+            'combos' => Schema::hasTable('combos') ? Combo::with('items.product')->active()->ordered()->limit(3)->get() : collect(),
+            'benefits' => Schema::hasTable('benefits') ? Benefit::active()->ordered()->get() : collect(),
+            'testimonials' => Schema::hasTable('testimonials') ? Testimonial::active()->ordered()->get() : collect(),
+        ]);
+    }
 
-        $sauces = Sauce::where('is_active', true)->get();
-        $spiceLevels = SpiceLevel::where('is_active', true)->orderBy('level')->get();
-        $toppings = Topping::where('is_active', true)->get();
-
-        $products = Product::with(['category', 'sauce', 'sauces'])
-            ->where('is_available', true)
-            ->orderBy('order')
-            ->get();
-
-        $popularDishes = Product::with(['category', 'sauce', 'sauces'])
-            ->where('is_available', true)
-            ->where('is_hot', true)
-            ->orderBy('order')
-            ->get();
-
-        $combos = Product::with(['category', 'sauce', 'sauces'])
-            ->whereHas('category', function ($query) {
-                $query->where('slug', 'combo');
-            })
-            ->where('is_available', true)
-            ->orderBy('order')
-            ->take(3)
-            ->get();
-
-        $upsellItems = Product::with(['category', 'sauce', 'sauces'])
-            ->whereHas('category', function ($query) {
-                $query->whereIn('slug', ['drink', 'side']);
-            })
-            ->where('is_available', true)
-            ->take(4)
-            ->get();
-
-        return view('pages.home', compact(
-            'categories',
-            'sauces',
-            'spiceLevels',
-            'toppings',
-            'products',
-            'popularDishes',
-            'combos',
-            'upsellItems'
-        ));
+    /**
+     * Display the Quality & Brand Commitments page.
+     */
+    public function quality(): View
+    {
+        return view('pages.quality', [
+            'benefits' => Schema::hasTable('benefits') ? Benefit::active()->ordered()->get() : collect(),
+            'sauces' => Schema::hasTable('sauces') ? Sauce::active()->available()->get() : collect(),
+            'testimonials' => Schema::hasTable('testimonials') ? Testimonial::active()->ordered()->get() : collect(),
+        ]);
     }
 }

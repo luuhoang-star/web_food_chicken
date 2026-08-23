@@ -17,6 +17,11 @@ class DatabaseSeeder extends Seeder
             SpiceLevelSeeder::class,
             ToppingSeeder::class,
             ProductSeeder::class,
+            ComboSeeder::class,
+            HeroSeeder::class,
+            BenefitSeeder::class,
+            TestimonialSeeder::class,
+            SiteSettingSeeder::class,
         ]);
     }
 }

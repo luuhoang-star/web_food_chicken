@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/menu', [MenuController::class, 'index'])->name('menu');
+Route::get('/cam-ket', [HomeController::class, 'quality'])->name('quality');
 
 // Redirect any old sauce routes directly to Menu
 Route::get('/sot', fn () => redirect()->route('menu'))->name('sauces.index');

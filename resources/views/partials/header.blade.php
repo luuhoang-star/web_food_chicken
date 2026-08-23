@@ -1,8 +1,8 @@
 <!-- TOP NOTIFICATION BAR -->
 <div class="bg-gradient-to-r from-red-600 to-amber-600 text-white text-xs font-semibold py-1.5 px-4 text-center tracking-wide flex items-center justify-center gap-2">
     <span class="inline-block animate-pulse">🔥</span>
-    <span>Ưu đãi hôm nay: Freeship bán kính 3km cho đơn hàng từ 100k!</span>
-    <span class="hidden md:inline">• Hotline đặt món: <strong>0988.868.GAO</strong></span>
+    <span>{{ $settings['top_notification'] ?? 'Ưu đãi hôm nay: Freeship bán kính 3km cho đơn hàng từ 100k!' }}</span>
+    <span class="hidden md:inline">• Hotline đặt món: <strong>{{ $settings['hotline'] ?? '0988.868.GAO' }}</strong></span>
 </div>
 
 <!-- MAIN NAVBAR -->
@@ -19,10 +19,10 @@
             </div>
             <div>
                 <div class="flex items-center gap-1.5">
-                    <span class="text-2xl font-black tracking-tight text-gray-900 leading-none">GAO</span>
-                    <span class="text-[10px] uppercase font-extrabold px-1.5 py-0.5 bg-red-100 text-red-700 rounded-sm">Hà Nội</span>
+                    <span class="text-2xl font-black tracking-tight text-gray-900 leading-none">{{ $settings['site_name'] ?? 'GAO' }}</span>
+                    <span class="text-[10px] uppercase font-extrabold px-1.5 py-0.5 bg-red-100 text-red-700 rounded-sm">{{ $settings['location_short'] ?? 'Hà Nội' }}</span>
                 </div>
-                <span class="text-[11px] font-bold text-gray-400 tracking-wider block mt-0.5">GÀ SỐT & CƠM</span>
+                <span class="text-[11px] font-bold text-gray-400 tracking-wider block mt-0.5">{{ $settings['site_tagline'] ?? 'GÀ SỐT & CƠM' }}</span>
             </div>
         </a>
 
@@ -43,8 +43,8 @@
             </a>
 
             <a 
-                href="{{ route('home') }}#benefits" 
-                class="text-gray-600 hover:text-red-600 transition-colors py-1"
+                href="{{ route('quality') }}" 
+                class="py-1 transition-colors {{ request()->routeIs('quality') ? 'text-red-600 border-b-2 border-red-600 font-bold' : 'text-gray-600 hover:text-red-600' }}"
             >
                 Cam Kết Chất Lượng
             </a>
@@ -55,7 +55,7 @@
             <!-- Location badge -->
             <div class="hidden lg:flex items-center gap-1.5 px-3.5 py-1.5 rounded-full border border-gray-200 bg-gray-50/80 text-xs font-medium text-gray-700 shadow-xs">
                 <span class="text-red-500 text-sm">📍</span>
-                <span>Hà Nội (3–5km)</span>
+                <span>{{ $settings['location_badge'] ?? 'Hà Nội (3–5km)' }}</span>
             </div>
 
             <!-- Shopping Cart Icon with Badge -->
@@ -81,11 +81,11 @@
 
             <!-- Order CTA Button -->
             <a 
-                href="{{ route('menu') }}" 
+                href="{{ $settings['header_cta_url'] ?? route('menu') }}" 
                 class="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white text-sm font-bold shadow-md red-glow transition-all duration-200 active:scale-95 cursor-pointer"
             >
                 <span class="text-base">🍗</span>
-                <span>Đặt món</span>
+                <span>{{ $settings['header_cta_text'] ?? 'Đặt món' }}</span>
             </a>
         </div>
     </div>

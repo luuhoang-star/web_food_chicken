@@ -4,18 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Category extends Model
+class Benefit extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'slug',
         'icon',
-        'order',
+        'color_class',
+        'title',
+        'description',
         'is_active',
+        'order',
     ];
 
     protected $casts = [
@@ -23,13 +23,13 @@ class Category extends Model
         'order' => 'integer',
     ];
 
-    public function products(): HasMany
-    {
-        return $this->hasMany(Product::class)->orderBy('order');
-    }
-
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
+    }
+
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('order', 'asc');
     }
 }

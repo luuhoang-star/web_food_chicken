@@ -96,3 +96,116 @@ test('order can be placed with standalone sauce and product items', function () 
         'quantity' => 1,
     ]);
 });
+
+test('menu page filters popular items with query category=popular', function () {
+    $response = $this->get('/menu?category=popular');
+
+    $response->assertStatus(200);
+    $response->assertSee('THỰC ĐƠN ĐẶT MÓN');
+});
+
+test('product model tag accessor sanitizes legacy tags', function () {
+    $productWithNew = new Product(['tag' => 'MỚI']);
+    $this->assertNull($productWithNew->tag);
+
+    $productWithLegacy = new Product(['tag' => 'MÓN HOT']);
+    $this->assertNull($productWithLegacy->tag);
+
+    $productWithBestSeller = new Product(['tag' => 'BEST SELLER']);
+    $this->assertEquals('BEST SELLER', $productWithBestSeller->tag);
+
+    $productWithDiscount = new Product(['tag' => 'TIẾT KIỆM']);
+    $this->assertEquals('TIẾT KIỆM', $productWithDiscount->tag);
+});
+
+test('order service calculates free shipping for orders over 100k', function () {
+    $service = new \App\Services\OrderService();
+    $product = Product::first();
+
+    $order = $service->createOrder([
+        'fullName' => 'Test Customer',
+        'phone' => '0973797151',
+        'district' => 'Ga Hà Đông',
+        'address' => '123 Test Street',
+        'driverNote' => null,
+        'paymentMethod' => 'cod',
+        'items' => [
+            [
+                'item_type' => 'product',
+                'product_id' => $product->id,
+                'name' => $product->name,
+                'price' => 120000,
+                'quantity' => 1,
+            ],
+        ],
+    ]);
+
+    expect($order->shipping_fee)->toBe('0');
+    expect($order->total_amount)->toBe('120000');
+    expect($order->order_code)->toStartWith('GAO-');
+});
+
+test('combos have items relationship and active scope', function () {
+    $combos = \App\Models\Combo::with('items.product')->active()->ordered()->get();
+    expect($combos->count())->toBeGreaterThanOrEqual(3);
+
+    $combo2 = $combos->firstWhere('slug', 'combo-2-nguoi');
+    expect($combo2)->not->toBeNull();
+    expect($combo2->items)->not->toBeEmpty();
+    expect($combo2->tag)->toBe('BEST SELLER');
+});
+
+test('hero section renders dynamic data from hero model', function () {
+    $hero = \App\Models\Hero::active()->ordered()->first();
+    expect($hero)->not->toBeNull();
+    expect($hero->title)->toBe('GÀ GIÒN.');
+    expect($hero->title_highlight)->toBe('SỐT ĐẬM.');
+
+    $response = $this->get(route('home'));
+    $response->assertStatus(200);
+    $response->assertSee($hero->title);
+    $response->assertSee($hero->title_highlight);
+    $response->assertSee($hero->cta_primary_text);
+});
+
+test('benefits section renders dynamic USP items from database', function () {
+    $benefits = \App\Models\Benefit::active()->ordered()->get();
+    expect($benefits->count())->toBe(3);
+
+    $response = $this->get(route('home'));
+    $response->assertStatus(200);
+    foreach ($benefits as $benefit) {
+        $response->assertSee($benefit->title);
+        $response->assertSee($benefit->description);
+    }
+});
+
+test('testimonials section renders dynamic customer reviews from database', function () {
+    $testimonials = \App\Models\Testimonial::active()->ordered()->get();
+    expect($testimonials->count())->toBe(3);
+
+    $response = $this->get(route('home'));
+    $response->assertStatus(200);
+    foreach ($testimonials as $review) {
+        $response->assertSee($review->customer_name);
+        $response->assertSee($review->location);
+    }
+});
+
+test('header and footer render dynamic settings from site_settings table', function () {
+    $settings = \App\Models\SiteSetting::allKeyed();
+    expect($settings)->toHaveKey('hotline');
+    expect($settings['hotline'])->toBe('0988.868.GAO');
+
+    $response = $this->get(route('home'));
+    $response->assertStatus(200);
+    $response->assertSee($settings['hotline']);
+    $response->assertSee($settings['store_address']);
+});
+
+test('quality page renders dynamic commitments and sauces from database', function () {
+    $response = $this->get(route('quality'));
+    $response->assertStatus(200);
+    $response->assertSee('CAM KẾT CHẤT LƯỢNG');
+    $response->assertSee('3 TIÊU CHUẨN PHỤC VỤ HÀNG ĐẦU');
+});

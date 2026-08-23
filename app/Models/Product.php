@@ -85,4 +85,24 @@ class Product extends Model
     {
         return $this->sauce_selection === 'none';
     }
+
+    public function scopeAvailable($query)
+    {
+        return $query->where('is_available', true);
+    }
+
+    public function scopeHot($query)
+    {
+        return $query->where('is_hot', true);
+    }
+
+    public function scopeCombos($query)
+    {
+        return $query->whereHas('category', fn ($q) => $q->where('slug', 'combo'));
+    }
+
+    public function scopeUpsell($query)
+    {
+        return $query->whereHas('category', fn ($q) => $q->whereIn('slug', ['drink', 'side']));
+    }
 }

@@ -164,6 +164,8 @@ function gaoApp() {
             selectedSauce: 'Sốt Cay Hàn',
             selectedSpiceLevel: 'Cay nhẹ (Chuẩn vị)',
             selectedToppings: [],
+            selectedSides: [],
+            selectedDrinks: [],
             extraSauces: {}, // e.g. { 'sot-cay-han': 2, 'sot-mat-ong': 1 }
             note: ''
         },
