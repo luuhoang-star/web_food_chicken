@@ -51,11 +51,15 @@
             <div class="bg-white px-5 py-3 border-b border-orange-100/70 shrink-0">
                 <div class="flex items-center gap-2 text-xs font-black text-gray-800">
                     <span>🎉</span>
-                    <span>Bạn đã được <strong>FREE SHIP 3KM!</strong></span>
+                    <span x-show="totalPrice >= 100000">Bạn đã được <strong>FREE SHIP 3KM!</strong></span>
+                    <span x-show="totalPrice < 100000">Mua thêm <strong class="text-red-600" x-text="formatCurrency(100000 - totalPrice)"></strong> để được <strong>FREE SHIP!</strong></span>
                 </div>
                 <!-- Progress Bar -->
                 <div class="w-full h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
-                    <div class="h-full bg-gradient-to-r from-red-600 to-amber-500 rounded-full w-full"></div>
+                    <div 
+                        class="h-full bg-gradient-to-r from-red-600 to-amber-500 rounded-full transition-all duration-300"
+                        :style="'width: ' + Math.min(100, Math.round((totalPrice / 100000) * 100)) + '%'"
+                    ></div>
                 </div>
             </div>
 
@@ -69,12 +73,14 @@
                     </div>
                     <h3 class="text-base font-bold text-gray-800">Chưa có món nào trong giỏ</h3>
                     <p class="text-xs text-gray-500 max-w-xs mx-auto">Hãy chọn ngay các món gà giòn phủ sốt thơm ngon để thưởng thức nhé!</p>
-                    <button 
-                        @click="isCartOpen = false; switchView('menu')" 
-                        class="px-6 py-2.5 rounded-full bg-red-600 text-white font-bold text-xs tracking-wide shadow-md"
-                    >
-                        Xem thực đơn ngay
-                    </button>
+                    <div class="pt-2">
+                        <a 
+                            href="{{ route('menu') }}" 
+                            class="px-6 py-2.5 rounded-full bg-red-600 text-white font-bold text-xs tracking-wide shadow-md inline-block"
+                        >
+                            Xem thực đơn ngay
+                        </a>
+                    </div>
                 </div>
 
                 <!-- Cart Item Cards -->
@@ -84,31 +90,42 @@
                         <!-- Delete Button (Top-Right X) -->
                         <button 
                             @click="removeItem(index)" 
-                            class="absolute top-3.5 right-3.5 w-6 h-6 rounded-full bg-gray-100 hover:bg-red-50 text-gray-400 hover:text-red-600 flex items-center justify-center transition-colors"
+                            class="absolute top-3.5 right-3.5 w-6 h-6 rounded-full bg-gray-100 hover:bg-red-50 text-gray-400 hover:text-red-600 flex items-center justify-center transition-colors cursor-pointer"
                         >
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                         </button>
 
                         <div class="flex items-start gap-3.5 pr-6">
-                            <!-- Food Thumbnail -->
+                            <!-- Food / Sauce Thumbnail -->
                             <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-gray-100 bg-gray-100">
                                 <img :src="item.image" :alt="item.name" class="w-full h-full object-cover">
                             </div>
 
                             <!-- Info & Option Badges -->
                             <div class="flex-1 min-w-0 space-y-1">
-                                <h4 class="font-black text-sm text-gray-900 leading-tight truncate" x-text="item.name">
-                                    Cơm Gà Sốt Cay
-                                </h4>
+                                <div class="flex items-center gap-1.5">
+                                    <h4 class="font-black text-sm text-gray-900 leading-tight truncate" x-text="item.name">
+                                        Cơm Gà Sốt Cay
+                                    </h4>
+                                    <!-- Sauce Badge -->
+                                    <span x-show="item.item_type === 'sauce'" class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-sm bg-red-100 text-red-700">
+                                        Sốt lẻ
+                                    </span>
+                                </div>
 
-                                <!-- Option Tags (Sauce, Spice level, Toppings) -->
-                                <div class="flex flex-wrap gap-1.5 pt-0.5" x-show="item.sauce || item.spiceLevel">
+                                <!-- Option Tags (Sauce, Spice level, Toppings) for dishes -->
+                                <div class="flex flex-wrap gap-1.5 pt-0.5" x-show="item.item_type !== 'sauce' && (item.sauce || item.spiceLevel)">
                                     <span x-show="item.sauce" class="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-2 py-0.5 rounded-md" x-text="'🌶️ ' + item.sauce">
                                         🌶️ Sốt Cay Hàn
                                     </span>
                                     <span x-show="item.spiceLevel" class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-md" x-text="item.spiceLevel">
                                         Cay nhẹ (Chuẩn vị)
                                     </span>
+                                </div>
+
+                                <!-- Note / Sauce description -->
+                                <div x-show="item.item_type === 'sauce'" class="text-[11px] text-gray-500 font-semibold">
+                                    Hũ sốt chấm / trộn thêm hảo hạng
                                 </div>
 
                                 <!-- Toppings tag list -->
@@ -126,12 +143,12 @@
                             <div class="flex items-center gap-2.5 px-3 py-1 rounded-full border border-gray-200 bg-gray-50">
                                 <button 
                                     @click="decrementItem(index)" 
-                                    class="text-gray-500 hover:text-gray-900 font-bold text-xs w-4 text-center"
+                                    class="text-gray-500 hover:text-gray-900 font-bold text-xs w-4 text-center cursor-pointer"
                                 >-</button>
                                 <span class="font-black text-xs w-4 text-center text-gray-900" x-text="item.quantity">3</span>
                                 <button 
                                     @click="incrementItem(index)" 
-                                    class="text-gray-500 hover:text-gray-900 font-bold text-xs w-4 text-center"
+                                    class="text-gray-500 hover:text-gray-900 font-bold text-xs w-4 text-center cursor-pointer"
                                 >+</button>
                             </div>
                         </div>
@@ -153,7 +170,7 @@
                                 <span class="text-xs font-black text-red-600" x-text="'+' + formatCurrency(up.price)">+12.000đ</span>
                                 <button 
                                     @click="addToCartDirect(up)" 
-                                    class="text-[11px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-0.5 rounded-full"
+                                    class="text-[11px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-0.5 rounded-full cursor-pointer"
                                 >+ Thêm</button>
                             </div>
                         </template>
@@ -183,7 +200,7 @@
                 <button 
                     @click="openCheckout()" 
                     type="button" 
-                    class="w-full py-4 rounded-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-black text-base tracking-wider uppercase shadow-xl red-glow text-center transition-all active:scale-95"
+                    class="w-full py-4 rounded-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-black text-base tracking-wider uppercase shadow-xl red-glow text-center transition-all active:scale-95 cursor-pointer"
                 >
                     THANH TOÁN
                 </button>

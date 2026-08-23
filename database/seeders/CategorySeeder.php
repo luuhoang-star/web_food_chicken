@@ -21,7 +21,7 @@ class CategorySeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'name' => 'Gà Sốt',
+                'name' => 'Gà',
                 'slug' => 'chicken',
                 'icon' => '🍗',
                 'order' => 2,
@@ -30,7 +30,7 @@ class CategorySeeder extends Seeder
             [
                 'name' => 'Combo',
                 'slug' => 'combo',
-                'icon' => '👥',
+                'icon' => '🍱',
                 'order' => 3,
                 'is_active' => true,
             ],

@@ -20,19 +20,18 @@
                 </p>
 
                 <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-2">
-                    <button 
-                        @click="switchView('menu')" 
-                        class="px-8 py-4 rounded-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-extrabold text-sm sm:text-base tracking-wide uppercase shadow-lg red-glow transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0"
+                    <a 
+                        href="{{ route('menu') }}" 
+                        class="px-8 py-4 rounded-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-extrabold text-sm sm:text-base tracking-wide uppercase shadow-lg red-glow transition-all duration-200 transform hover:-translate-y-0.5 active:translate-y-0 inline-flex items-center gap-2"
                     >
-                        ĐẶT MÓN NGAY
-                    </button>
-                    <button 
-                        @click="switchView('menu')"
-                        type="button"
-                        class="px-7 py-4 rounded-full bg-white hover:bg-gray-50 text-gray-800 font-bold text-sm sm:text-base tracking-wide border border-gray-200 shadow-sm transition-all duration-200 hover:border-gray-300"
+                        <span>🍗 ĐẶT MÓN NGAY</span>
+                    </a>
+                    <a 
+                        href="{{ route('sauces') }}"
+                        class="px-7 py-4 rounded-full bg-white hover:bg-gray-50 text-gray-800 font-bold text-sm sm:text-base tracking-wide border border-gray-200 shadow-sm transition-all duration-200 hover:border-red-300 inline-flex items-center gap-2"
                     >
-                        XEM MENU
-                    </button>
+                        <span>🔥 XEM 4 VỊ SỐT</span>
+                    </a>
                 </div>
 
                 <div class="pt-4 flex flex-wrap items-center justify-center lg:justify-start gap-6 sm:gap-8 text-xs sm:text-sm font-bold text-gray-600">

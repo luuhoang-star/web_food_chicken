@@ -129,56 +129,83 @@
                 </div>
 
                 <!-- Section: Phương thức thanh toán -->
-                <div class="space-y-2 pt-1">
+                <div class="space-y-2.5 pt-1">
                     <label class="block text-xs sm:text-sm font-black text-gray-900">
                         Phương thức thanh toán
                     </label>
-                    <div class="grid grid-cols-2 gap-2.5">
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         
                         <!-- Option 1: COD -->
                         <button 
                             @click="checkoutForm.paymentMethod = 'cod'"
                             type="button"
-                            class="p-3.5 rounded-2xl border-2 text-left flex items-center gap-2.5 transition-all"
-                            :class="checkoutForm.paymentMethod === 'cod' ? 'border-red-500 bg-red-50/70 shadow-xs' : 'border-gray-200/80 bg-white hover:border-gray-300'"
+                            class="p-3 rounded-2xl border-2 text-left flex items-center gap-2 transition-all cursor-pointer"
+                            :class="checkoutForm.paymentMethod === 'cod' ? 'border-red-500 bg-red-50/80 shadow-xs ring-2 ring-red-500/20' : 'border-gray-200/80 bg-white hover:border-gray-300'"
                         >
                             <span class="text-base">💵</span>
                             <span class="text-xs font-black text-gray-900">Tiền mặt (COD)</span>
                         </button>
 
-                        <!-- Option 2: MoMo -->
+                        <!-- Option 2: VietQR Chuyển khoản -->
+                        <button 
+                            @click="checkoutForm.paymentMethod = 'bank_transfer'"
+                            type="button"
+                            class="p-3 rounded-2xl border-2 text-left flex items-center gap-2 transition-all cursor-pointer"
+                            :class="checkoutForm.paymentMethod === 'bank_transfer' ? 'border-red-500 bg-red-50/80 shadow-xs ring-2 ring-red-500/20' : 'border-gray-200/80 bg-white hover:border-gray-300'"
+                        >
+                            <span class="text-base">📱</span>
+                            <span class="text-xs font-black text-gray-900">Quét mã VietQR</span>
+                        </button>
+
+                        <!-- Option 3: MoMo -->
                         <button 
                             @click="checkoutForm.paymentMethod = 'momo'"
                             type="button"
-                            class="p-3.5 rounded-2xl border-2 text-left flex items-center gap-2.5 transition-all"
-                            :class="checkoutForm.paymentMethod === 'momo' ? 'border-red-500 bg-red-50/70 shadow-xs' : 'border-gray-200/80 bg-white hover:border-gray-300'"
+                            class="p-3 rounded-2xl border-2 text-left flex items-center gap-2 transition-all cursor-pointer"
+                            :class="checkoutForm.paymentMethod === 'momo' ? 'border-red-500 bg-red-50/80 shadow-xs ring-2 ring-red-500/20' : 'border-gray-200/80 bg-white hover:border-gray-300'"
                         >
-                            <span class="w-3.5 h-3.5 rounded-full bg-[#A50064] inline-block"></span>
+                            <span class="w-3.5 h-3.5 rounded-full bg-[#A50064] inline-block shrink-0"></span>
                             <span class="text-xs font-black text-gray-900">Ví MoMo</span>
                         </button>
 
-                        <!-- Option 3: VNPay QR -->
-                        <button 
-                            @click="checkoutForm.paymentMethod = 'vnpay'"
-                            type="button"
-                            class="p-3.5 rounded-2xl border-2 text-left flex items-center gap-2.5 transition-all"
-                            :class="checkoutForm.paymentMethod === 'vnpay' ? 'border-red-500 bg-red-50/70 shadow-xs' : 'border-gray-200/80 bg-white hover:border-gray-300'"
-                        >
-                            <span class="text-base">💳</span>
-                            <span class="text-xs font-black text-gray-900">VNPay QR</span>
-                        </button>
+                    </div>
 
-                        <!-- Option 4: ZaloPay -->
-                        <button 
-                            @click="checkoutForm.paymentMethod = 'zalopay'"
-                            type="button"
-                            class="p-3.5 rounded-2xl border-2 text-left flex items-center gap-2.5 transition-all"
-                            :class="checkoutForm.paymentMethod === 'zalopay' ? 'border-red-500 bg-red-50/70 shadow-xs' : 'border-gray-200/80 bg-white hover:border-gray-300'"
-                        >
-                            <span class="w-3.5 h-3.5 rounded-full bg-[#0068FF] inline-block"></span>
-                            <span class="text-xs font-black text-gray-900">ZaloPay</span>
-                        </button>
-
+                    <!-- VietQR Detail Box (Shows when VietQR is selected) -->
+                    <div 
+                        x-show="checkoutForm.paymentMethod === 'bank_transfer'" 
+                        class="p-4 bg-white rounded-2xl border border-red-200 space-y-3 shadow-xs"
+                    >
+                        <div class="flex items-center justify-between text-xs font-black text-red-600">
+                            <span>⚡ Quét mã QR thanh toán nhanh</span>
+                            <span>MB Bank</span>
+                        </div>
+                        <div class="flex flex-col sm:flex-row items-center gap-4">
+                            <div class="w-32 h-32 p-1.5 bg-white border border-gray-200 rounded-xl shadow-xs shrink-0">
+                                <img 
+                                    :src="'https://img.vietqr.io/image/MB-0988888888-compact2.png?amount=' + (totalPrice >= 100000 ? totalPrice : totalPrice + 15000) + '&addInfo=GAO%20' + encodeURIComponent(checkoutForm.phone || 'DONHANG') + '&accountName=GAO%20CHICKEN%20HA%20NOI'" 
+                                    alt="VietQR Code" 
+                                    class="w-full h-full object-contain"
+                                >
+                            </div>
+                            <div class="space-y-1.5 text-xs flex-1 w-full">
+                                <div class="flex justify-between border-b border-gray-100 pb-1">
+                                    <span class="text-gray-500">Ngân hàng:</span>
+                                    <span class="font-black text-gray-900">MB Bank</span>
+                                </div>
+                                <div class="flex justify-between border-b border-gray-100 pb-1">
+                                    <span class="text-gray-500">Số tài khoản:</span>
+                                    <span class="font-black text-red-600 tracking-wider">0988 888 888</span>
+                                </div>
+                                <div class="flex justify-between border-b border-gray-100 pb-1">
+                                    <span class="text-gray-500">Chủ tài khoản:</span>
+                                    <span class="font-bold text-gray-900">GAO CHICKEN</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-500">Nội dung CK:</span>
+                                    <span class="font-black text-gray-900" x-text="'GAO ' + (checkoutForm.phone || 'DONHANG')">GAO 0912345678</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

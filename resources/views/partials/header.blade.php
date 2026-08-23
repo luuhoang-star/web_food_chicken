@@ -10,7 +10,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
         
         <!-- Brand Logo -->
-        <a href="#" @click.prevent="switchView('home')" class="flex items-center gap-3 group">
+        <a href="{{ route('home') }}" class="flex items-center gap-3 group">
             <div class="w-11 h-11 rounded-full bg-gradient-to-br from-red-600 via-orange-600 to-amber-500 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform duration-200">
                 <svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C8.13 2 5 5.13 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.87-3.13-7-7-7zm-1 18h2v2h-2v-2z"/>
@@ -26,35 +26,28 @@
             </div>
         </a>
 
-        <!-- Desktop Navigation Links -->
+        <!-- Desktop Navigation Links (Clean & Focused) -->
         <nav class="hidden md:flex items-center gap-8 text-[15px] font-semibold">
-            <button 
-                @click="switchView('home')" 
-                class="py-1 transition-colors"
-                :class="currentView === 'home' ? 'text-red-600 border-b-2 border-red-600 font-bold' : 'text-gray-600 hover:text-red-600'"
-            >Trang chủ</button>
             <a 
-                href="#sauces" 
-                @click="if(currentView !== 'home') { switchView('home'); setTimeout(() => { document.getElementById('sauces')?.scrollIntoView({behavior: 'smooth'}) }, 100); }" 
-                class="text-gray-600 hover:text-red-600 transition-colors py-1"
-            >Vị Sốt</a>
-            <a 
-                href="#popular" 
-                @click="if(currentView !== 'home') { switchView('home'); setTimeout(() => { document.getElementById('popular')?.scrollIntoView({behavior: 'smooth'}) }, 100); }" 
-                class="text-gray-600 hover:text-red-600 transition-colors py-1"
-            >Món Hot</a>
-            <a 
-                href="#combos" 
-                @click="if(currentView !== 'home') { switchView('home'); setTimeout(() => { document.getElementById('combos')?.scrollIntoView({behavior: 'smooth'}) }, 100); }" 
-                class="text-gray-600 hover:text-red-600 transition-colors py-1"
-            >Combo</a>
-            <button 
-                @click="switchView('menu')" 
-                class="py-1 transition-colors flex items-center gap-1 font-bold"
-                :class="currentView === 'menu' ? 'text-red-600 border-b-2 border-red-600' : 'text-gray-600 hover:text-red-600'"
+                href="{{ route('home') }}" 
+                class="py-1 transition-colors {{ request()->routeIs('home') ? 'text-red-600 border-b-2 border-red-600 font-bold' : 'text-gray-600 hover:text-red-600' }}"
             >
-                <span>Menu đầy đủ</span>
-            </button>
+                Trang chủ
+            </a>
+
+            <a 
+                href="{{ route('menu') }}" 
+                class="py-1 transition-colors flex items-center gap-1.5 {{ request()->routeIs('menu') ? 'text-red-600 border-b-2 border-red-600 font-bold' : 'text-gray-600 hover:text-red-600' }}"
+            >
+                <span>🍗 Thực Đơn Đặt Món</span>
+            </a>
+
+            <a 
+                href="{{ route('home') }}#benefits" 
+                class="text-gray-600 hover:text-red-600 transition-colors py-1"
+            >
+                Cam Kết Chất Lượng
+            </a>
         </nav>
 
         <!-- Right Controls (Location, Cart, Order Button) -->
@@ -69,7 +62,7 @@
             <button 
                 @click="isCartOpen = true" 
                 type="button"
-                class="relative p-2.5 rounded-full border border-gray-200 text-gray-700 hover:border-red-400 hover:text-red-600 transition-all bg-white shadow-xs focus:outline-none"
+                class="relative p-2.5 rounded-full border border-gray-200 text-gray-700 hover:border-red-400 hover:text-red-600 transition-all bg-white shadow-xs focus:outline-none cursor-pointer"
                 aria-label="Giỏ hàng"
             >
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,14 +80,13 @@
             </button>
 
             <!-- Order CTA Button -->
-            <button 
-                @click="switchView('menu')" 
-                type="button"
-                class="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white text-sm font-bold shadow-md red-glow transition-all duration-200 active:scale-95"
+            <a 
+                href="{{ route('menu') }}" 
+                class="hidden sm:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white text-sm font-bold shadow-md red-glow transition-all duration-200 active:scale-95 cursor-pointer"
             >
                 <span class="text-base">🍗</span>
                 <span>Đặt món</span>
-            </button>
+            </a>
         </div>
     </div>
 </header>

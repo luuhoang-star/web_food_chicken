@@ -51,7 +51,7 @@
             sauces: @json($sauces ?? []),
             spiceLevels: @json($spiceLevels ?? []),
             toppings: @json($toppings ?? []),
-            products: @json($products ?? []),
+            products: @json($allProducts ?? $products ?? []),
             popularDishes: @json($popularDishes ?? []),
             combos: @json($combos ?? []),
             upsellItems: @json($upsellItems ?? [])
@@ -107,6 +107,9 @@
 
     <!-- Mobile Sticky Action Bar -->
     @include('partials.mobile-sticky-bar')
+
+    <!-- Floating Cart Button (Desktop) -->
+    @include('partials.floating-cart')
 
     <!-- Modal: Tuỳ Chỉnh Món Ăn -->
     @include('modals.customize-dish')

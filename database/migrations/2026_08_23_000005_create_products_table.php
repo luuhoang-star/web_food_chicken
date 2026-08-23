@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->foreignId('category_id')->constrained('categories')->cascadeOnDelete();
+            $table->foreignId('sauce_id')->nullable()->constrained('sauces')->nullOnDelete();
             $table->string('name');
             $table->string('slug')->unique();
             $table->text('description')->nullable();
@@ -24,7 +25,7 @@ return new class extends Migration
             $table->decimal('rating', 2, 1)->default(5.0);
             $table->integer('review_count')->default(0);
             $table->string('subtag')->nullable(); // 🍚 Cơm dẻo + Gà sốt cay
-            $table->string('default_sauce')->nullable(); // Sốt Cay Hàn, Sốt Mật Ong
+            $table->string('default_sauce')->nullable(); // Tên vị sốt mặc định
             $table->boolean('is_hot')->default(false); // Hiển thị ở mục Món Được Gọi Nhiều
             $table->boolean('is_available')->default(true);
             $table->integer('order')->default(0);

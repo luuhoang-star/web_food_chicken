@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
+use App\Models\Sauce;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -12,7 +14,7 @@ use Illuminate\Support\Facades\Log;
 class OrderController extends Controller
 {
     /**
-     * Store a newly created order in database.
+     * Store a newly created order with distinct item types (Product, Sauce, Combo).
      */
     public function store(Request $request): JsonResponse
     {
@@ -24,6 +26,9 @@ class OrderController extends Controller
             'driverNote' => 'nullable|string|max:500',
             'paymentMethod' => 'required|string|in:cod,momo,vnpay,zalopay',
             'items' => 'required|array|min:1',
+            'items.*.item_type' => 'nullable|string|in:product,sauce,combo',
+            'items.*.product_id' => 'nullable|integer',
+            'items.*.sauce_id' => 'nullable|integer',
             'items.*.name' => 'required|string',
             'items.*.price' => 'required|numeric',
             'items.*.quantity' => 'required|integer|min:1',
@@ -45,8 +50,8 @@ class OrderController extends Controller
             $shippingFee = ($subtotal >= 100000) ? 0 : 15000;
             $totalAmount = $subtotal + $shippingFee;
 
-            // Generate unique order code: GAO-XXXXXX
-            $orderCode = 'GAO-' . strtoupper(substr(uniqid(), -6));
+            // Unique Order Code: GAO-XXXXXX
+            $orderCode = 'GAO-'.strtoupper(substr(uniqid(), -6));
 
             $order = Order::create([
                 'order_code' => $orderCode,
@@ -65,9 +70,27 @@ class OrderController extends Controller
             ]);
 
             foreach ($validated['items'] as $item) {
+                $itemType = $item['item_type'] ?? 'product';
+                $productId = $item['product_id'] ?? null;
+                $sauceId = $item['sauce_id'] ?? null;
+
+                // Auto match sauce ID if item_type is sauce
+                if ($itemType === 'sauce' && ! $sauceId) {
+                    $matchedSauce = Sauce::where('name', $item['name'])->first();
+                    $sauceId = $matchedSauce?->id;
+                }
+
+                // Auto match product ID if item_type is product
+                if ($itemType === 'product' && ! $productId) {
+                    $matchedProduct = Product::where('name', $item['name'])->first();
+                    $productId = $matchedProduct?->id;
+                }
+
                 OrderItem::create([
                     'order_id' => $order->id,
-                    'product_id' => null, // Optional matching
+                    'item_type' => $itemType,
+                    'product_id' => $productId,
+                    'sauce_id' => $sauceId,
                     'product_name' => $item['name'],
                     'price' => $item['price'],
                     'quantity' => $item['quantity'],
@@ -91,11 +114,11 @@ class OrderController extends Controller
 
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Order creation failed: ' . $e->getMessage());
+            Log::error('Order creation failed: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Đã có lỗi xảy ra khi tạo đơn hàng: ' . $e->getMessage(),
+                'message' => 'Đã có lỗi xảy ra khi tạo đơn hàng: '.$e->getMessage(),
             ], 500);
         }
     }

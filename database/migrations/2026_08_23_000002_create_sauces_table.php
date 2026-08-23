@@ -21,7 +21,8 @@ return new class extends Migration
             $table->string('short_desc')->nullable();
             $table->text('description')->nullable();
             $table->string('image')->nullable();
-            $table->decimal('price', 12, 0)->default(49000);
+            $table->decimal('price', 12, 0)->default(10000);
+            $table->boolean('is_available')->default(true);
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });

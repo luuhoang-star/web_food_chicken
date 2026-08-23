@@ -12,7 +12,7 @@ use Illuminate\Contracts\View\View;
 class HomeController extends Controller
 {
     /**
-     * Display the main landing page and full menu with dynamic database records.
+     * Display the main landing / discovery page.
      */
     public function index(): View
     {
@@ -27,32 +27,35 @@ class HomeController extends Controller
         $spiceLevels = SpiceLevel::where('is_active', true)->orderBy('level')->get();
         $toppings = Topping::where('is_active', true)->get();
 
-        $products = Product::with('category')
+        $products = Product::with(['category', 'sauce', 'sauces'])
             ->where('is_available', true)
             ->orderBy('order')
             ->get();
 
-        $popularDishes = Product::where('is_available', true)
+        $popularDishes = Product::with(['category', 'sauce', 'sauces'])
+            ->where('is_available', true)
             ->where('is_hot', true)
             ->orderBy('order')
             ->get();
 
-        $combos = Product::whereHas('category', function ($query) {
-            $query->where('slug', 'combo');
-        })
+        $combos = Product::with(['category', 'sauce', 'sauces'])
+            ->whereHas('category', function ($query) {
+                $query->where('slug', 'combo');
+            })
             ->where('is_available', true)
             ->orderBy('order')
             ->take(3)
             ->get();
 
-        $upsellItems = Product::whereHas('category', function ($query) {
-            $query->whereIn('slug', ['drink', 'side']);
-        })
+        $upsellItems = Product::with(['category', 'sauce', 'sauces'])
+            ->whereHas('category', function ($query) {
+                $query->whereIn('slug', ['drink', 'side']);
+            })
             ->where('is_available', true)
             ->take(4)
             ->get();
 
-        return view('welcome', compact(
+        return view('pages.home', compact(
             'categories',
             'sauces',
             'spiceLevels',

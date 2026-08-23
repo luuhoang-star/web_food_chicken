@@ -29,9 +29,9 @@
                         <div class="absolute top-3 left-3" x-show="item.tag">
                             <span 
                                 class="px-2.5 py-1 rounded-md text-[11px] font-extrabold uppercase text-white shadow-xs"
-                                :class="item.tag === 'BEST SELLER' || item.tag === 'BÁN CHẠY' ? 'bg-red-600' : 'bg-amber-500'"
+                                :class="item.tag === 'BEST SELLER' ? 'bg-red-600' : 'bg-emerald-600'"
                                 x-text="item.tag"
-                            >BÁN CHẠY</span>
+                            >BEST SELLER</span>
                         </div>
                         <div class="absolute bottom-3 right-3 bg-white/90 backdrop-blur-xs px-2 py-0.5 rounded-full text-xs font-bold text-gray-800 flex items-center gap-1 shadow-xs">
                             <span class="text-amber-400">⭐</span>
@@ -56,7 +56,7 @@
                             <button 
                                 @click="openCustomize(item)" 
                                 type="button"
-                                class="px-4 py-1.5 rounded-full bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold text-xs tracking-wide border border-red-200 transition-all duration-200 active:scale-95 flex items-center gap-1"
+                                class="px-4 py-1.5 rounded-full bg-red-50 hover:bg-red-600 text-red-600 hover:text-white font-bold text-xs tracking-wide border border-red-200 transition-all duration-200 active:scale-95 flex items-center gap-1 cursor-pointer"
                             >
                                 <span>+ Thêm</span>
                             </button>
@@ -68,14 +68,13 @@
         </div>
 
         <div class="mt-12 text-center">
-            <button 
-                @click="switchView('menu')"
-                type="button"
+            <a 
+                href="{{ route('menu') }}"
                 class="inline-flex items-center gap-2 px-8 py-3.5 rounded-full border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-extrabold text-sm tracking-wide transition-all duration-200 shadow-xs"
             >
                 <span>XEM TOÀN BỘ MENU</span>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-            </button>
+            </a>
         </div>
 
     </div>

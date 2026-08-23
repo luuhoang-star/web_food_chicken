@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model
@@ -13,6 +14,8 @@ class Product extends Model
 
     protected $fillable = [
         'category_id',
+        'sauce_id',
+        'sauce_selection', // 'none', 'fixed', 'required'
         'name',
         'slug',
         'description',
@@ -39,13 +42,47 @@ class Product extends Model
         'order' => 'integer',
     ];
 
+    public function getTagAttribute(?string $value): ?string
+    {
+        if ($value === 'MỚI' || in_array($value, ['MÓN HOT', 'ĐƯỢC YÊU THÍCH', 'BÁN CHẠY', 'BÁN CHẠY NHẤT', 'THANH MÁT', 'THANH VỊ', 'ĂN VẶT'])) {
+            return null;
+        }
+
+        return $value;
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
+    public function sauce(): BelongsTo
+    {
+        return $this->belongsTo(Sauce::class);
+    }
+
+    public function sauces(): BelongsToMany
+    {
+        return $this->belongsToMany(Sauce::class, 'product_sauces')->withTimestamps();
+    }
+
     public function orderItems(): HasMany
     {
         return $this->hasMany(OrderItem::class);
+    }
+
+    public function requiresSauceChoice(): bool
+    {
+        return $this->sauce_selection === 'required';
+    }
+
+    public function hasFixedSauce(): bool
+    {
+        return $this->sauce_selection === 'fixed';
+    }
+
+    public function hasNoSauce(): bool
+    {
+        return $this->sauce_selection === 'none';
     }
 }
