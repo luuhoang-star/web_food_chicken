@@ -43,6 +43,7 @@
                     <a href="{{ route('quality') }}" class="hover:text-red-400 transition-colors">Cam Kết & Dịch Vụ</a>
                 </h5>
                 <ul class="space-y-2 text-xs text-gray-400 font-medium">
+                    <li><a href="{{ route('order.tracking') }}" class="hover:text-red-400 text-orange-400 font-bold transition-colors flex items-center gap-2"><span>🔍</span> <span>Tra Cứu Đơn Hàng</span></a></li>
                     <li><a href="{{ route('quality') }}" class="hover:text-gray-300 transition-colors flex items-center gap-2"><span>🛵</span> <span>Freeship 3km từ 100k</span></a></li>
                     <li><a href="{{ route('quality') }}" class="hover:text-gray-300 transition-colors flex items-center gap-2"><span>🔥</span> <span>Giao nhanh nóng hổi 25–40p</span></a></li>
                     <li><a href="{{ route('quality') }}" class="hover:text-gray-300 transition-colors flex items-center gap-2"><span>🍗</span> <span>100% Gà tươi chiên giòn</span></a></li>

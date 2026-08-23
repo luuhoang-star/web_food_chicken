@@ -48,6 +48,14 @@
             >
                 Cam Kết Chất Lượng
             </a>
+
+            <a 
+                href="{{ route('order.tracking') }}" 
+                class="py-1 transition-colors flex items-center gap-1 {{ request()->routeIs('order.tracking') ? 'text-red-600 border-b-2 border-red-600 font-bold' : 'text-gray-600 hover:text-red-600' }}"
+            >
+                <span>🛵</span>
+                <span>Tra Cứu Đơn</span>
+            </a>
         </nav>
 
         <!-- Right Controls (Location, Cart, Order Button) -->

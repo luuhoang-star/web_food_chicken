@@ -1,5 +1,5 @@
 <!-- FLOATING CHAT & SUPPORT WIDGET (MESSENGER & ZALO) -->
-<div class="fixed bottom-20 md:bottom-7 left-4 md:left-6 z-40 flex flex-col items-center gap-3.5 select-none">
+<div class="fixed bottom-24 md:bottom-7 left-3.5 md:left-6 z-40 flex flex-col items-center gap-3 select-none">
     
     <!-- 1. MESSENGER BUTTON -->
     <div class="relative group flex items-center">

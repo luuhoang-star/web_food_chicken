@@ -10,6 +10,12 @@ use Illuminate\Support\Facades\DB;
 
 class OrderService
 {
+    public function __construct(
+        protected ?TelegramService $telegramService = null
+    ) {
+        $this->telegramService ??= app(TelegramService::class);
+    }
+
     /**
      * Create an order and its associated items within a database transaction.
      *
@@ -17,7 +23,7 @@ class OrderService
      */
     public function createOrder(array $data): Order
     {
-        return DB::transaction(function () use ($data) {
+        $order = DB::transaction(function () use ($data) {
             $subtotal = 0;
             foreach ($data['items'] as $item) {
                 $subtotal += ($item['price'] * $item['quantity']);
@@ -81,5 +87,14 @@ class OrderService
 
             return $order->load('items');
         });
+
+        // Trigger asynchronous/non-blocking Telegram notification
+        try {
+            $this->telegramService->sendOrderNotification($order);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Telegram notification error: '.$e->getMessage());
+        }
+
+        return $order;
     }
 }

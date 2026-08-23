@@ -216,3 +216,54 @@ test('floating contact widget renders messenger and zalo chat buttons', function
     $response->assertSee('zalo.me/0973797151');
     $response->assertSee('m.me/luuhoang.it');
 });
+
+test('order tracking page renders search form and intro highlights', function () {
+    $response = $this->get(route('order.tracking'));
+    $response->assertStatus(200);
+    $response->assertSee('TRA CỨU');
+    $response->assertSee('ĐƠN HÀNG');
+    $response->assertSee('Giao Hàng 25–40 Phút');
+});
+
+test('order tracking can find order by order code or phone number', function () {
+    $service = new \App\Services\OrderService();
+    $product = Product::first();
+
+    $order = $service->createOrder([
+        'fullName' => 'Khách Hàng Test',
+        'phone' => '0973797151',
+        'district' => 'Quận Cầu Giấy',
+        'address' => '123 Đường Cầu Giấy',
+        'driverNote' => 'Giao trước 12h',
+        'paymentMethod' => 'cod',
+        'items' => [
+            [
+                'item_type' => 'product',
+                'product_id' => $product->id,
+                'name' => $product->name,
+                'price' => 75000,
+                'quantity' => 1,
+            ],
+        ],
+    ]);
+
+    // 1. Tìm bằng mã đơn
+    $responseCode = $this->get(route('order.tracking', ['code' => $order->order_code]));
+    $responseCode->assertStatus(200);
+    $responseCode->assertSee($order->order_code);
+    $responseCode->assertSee('Khách Hàng Test');
+    $responseCode->assertSee('Đã đặt đơn');
+
+    // 2. Tìm bằng số điện thoại
+    $responsePhone = $this->get(route('order.tracking', ['phone' => '0973797151']));
+    $responsePhone->assertStatus(200);
+    $responsePhone->assertSee($order->order_code);
+    $responsePhone->assertSee('123 Đường Cầu Giấy');
+});
+
+test('order tracking displays friendly empty state when order not found', function () {
+    $response = $this->get(route('order.tracking', ['q' => 'NON_EXISTENT_ORDER_99999']));
+    $response->assertStatus(200);
+    $response->assertSee('Không tìm thấy đơn hàng!');
+    $response->assertSee('NON_EXISTENT_ORDER_99999');
+});

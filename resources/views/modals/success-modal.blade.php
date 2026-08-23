@@ -41,12 +41,23 @@
 
             <p class="text-[11px] text-gray-500 italic">Bếp đang chuẩn bị món nóng giòn. Shipper sẽ giao đến bạn sau 25-40 phút!</p>
 
-            <button 
-                @click="openSuccessModal = false; switchView('home')" 
-                class="w-full py-3 rounded-full bg-red-600 text-white font-bold text-xs uppercase tracking-wider shadow-md hover:bg-red-700 transition-all"
-            >
-                Tiếp tục đặt món
-            </button>
+            <div class="space-y-2 pt-1">
+                <a 
+                    :href="'/tra-cuu-don?code=' + encodeURIComponent(orderSuccessData.orderCode)" 
+                    class="w-full py-3 rounded-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-black text-xs uppercase tracking-wider shadow-lg shadow-red-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                    <span>🛵 Theo dõi tiến độ đơn hàng</span>
+                    <span>→</span>
+                </a>
+
+                <button 
+                    @click="openSuccessModal = false; switchView('home')" 
+                    type="button"
+                    class="w-full py-2.5 rounded-full bg-gray-100 text-gray-700 font-bold text-xs uppercase tracking-wider hover:bg-gray-200 transition-all cursor-pointer"
+                >
+                    Tiếp tục đặt món
+                </button>
+            </div>
         </div>
     </div>
 </div>

@@ -44,6 +44,11 @@ class SiteSettingSeeder extends Seeder
             ['key' => 'contact_zalo_url', 'value' => 'https://zalo.me/0973797151', 'group' => 'contact', 'type' => 'text', 'description' => 'Đường dẫn Chat Zalo'],
             ['key' => 'contact_messenger_url', 'value' => 'https://m.me/luuhoang.it', 'group' => 'contact', 'type' => 'text', 'description' => 'Đường dẫn Chat Messenger'],
             ['key' => 'contact_facebook_url', 'value' => 'https://facebook.com/luuhoang.it', 'group' => 'contact', 'type' => 'text', 'description' => 'Đường dẫn Trang cá nhân Facebook'],
+
+            // Telegram Order Notifications
+            ['key' => 'telegram_bot_token', 'value' => '', 'group' => 'notification', 'type' => 'text', 'description' => 'Telegram Bot Token'],
+            ['key' => 'telegram_chat_id', 'value' => '', 'group' => 'notification', 'type' => 'text', 'description' => 'Telegram Chat ID'],
+            ['key' => 'telegram_notifications_enabled', 'value' => '1', 'group' => 'notification', 'type' => 'boolean', 'description' => 'Bật/Tắt thông báo Telegram'],
         ];
 
         foreach ($settings as $setting) {
