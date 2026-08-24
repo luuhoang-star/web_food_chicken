@@ -18,9 +18,10 @@ class TelegramService
         $credentials = $this->getCredentials();
 
         if (! $credentials['enabled'] || empty($credentials['bot_token']) || empty($credentials['chat_id'])) {
-            Log::info("Telegram notification skipped: Bot token or Chat ID is not configured.", [
+            Log::info('Telegram notification skipped: Bot token or Chat ID is not configured.', [
                 'order_code' => $order->order_code,
             ]);
+
             return false;
         }
 
@@ -51,16 +52,16 @@ class TelegramService
         }
 
         $text = $customText ?: "🍗 <b>GAO GÀ SỐT & CƠM - KẾT NỐI BOT THÀNH CÔNG!</b>\n\n"
-            . "✅ Bot Telegram đã sẵn sàng nhận thông báo đơn hàng tự động từ website.\n"
-            . "⏱️ Thời gian kiểm tra: <b>" . now()->format('H:i:s - d/m/Y') . "</b>\n\n"
-            . "🚀 <i>Chúc quán nhận bão đơn mỗi ngày!</i>";
+            ."✅ Bot Telegram đã sẵn sàng nhận thông báo đơn hàng tự động từ website.\n"
+            .'⏱️ Thời gian kiểm tra: <b>'.now()->format('H:i:s - d/m/Y')."</b>\n\n"
+            .'🚀 <i>Chúc quán nhận bão đơn mỗi ngày!</i>';
 
         $success = $this->sendMessage($credentials['bot_token'], $credentials['chat_id'], $text);
 
         return [
             'success' => $success,
-            'message' => $success 
-                ? 'Đã gửi tin nhắn test thành công! Hãy kiểm tra ứng dụng Telegram trên điện thoại của bạn.' 
+            'message' => $success
+                ? 'Đã gửi tin nhắn test thành công! Hãy kiểm tra ứng dụng Telegram trên điện thoại của bạn.'
                 : 'Gửi tin nhắn thất bại. Vui lòng kiểm tra lại Bot Token hoặc Chat ID.',
         ];
     }
@@ -81,18 +82,21 @@ class TelegramService
             ]);
 
             if ($response->successful()) {
-                Log::info("Telegram order notification sent successfully.", [
+                Log::info('Telegram order notification sent successfully.', [
                     'chat_id' => $chatId,
                 ]);
+
                 return true;
             }
 
-            Log::error("Telegram API Error: " . $response->body());
+            Log::error('Telegram API Error: '.$response->body());
+
             return false;
         } catch (Throwable $e) {
-            Log::error("Telegram Service Exception: " . $e->getMessage(), [
+            Log::error('Telegram Service Exception: '.$e->getMessage(), [
                 'exception' => $e,
             ]);
+
             return false;
         }
     }
@@ -121,6 +125,9 @@ class TelegramService
         $msg .= "📞 <b>SĐT:</b> <a href=\"tel:{$phone}\">{$phone}</a>\n";
         $msg .= "📍 <b>Địa chỉ:</b> {$address}, {$district}\n";
         
+        $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' . urlencode($order->address . ', ' . $order->district . ', Hà Nội');
+        $msg .= "🗺️ <b>Chỉ đường:</b> <a href=\"{$mapsUrl}\">Mở Google Maps dẫn đường</a>\n";
+
         if ($note) {
             $msg .= "📝 <b>Ghi chú shipper:</b> <i>\"{$note}\"</i>\n";
         }
@@ -133,33 +140,30 @@ class TelegramService
             $num = $index + 1;
             $itemName = htmlspecialchars((string) $item->product_name, ENT_QUOTES, 'UTF-8');
             $itemTotal = number_format((float) ($item->total_item_price ?: ($item->price * $item->quantity)), 0, ',', '.');
-            
+
             $msg .= "  <b>{$num}. {$itemName}</b> x{$item->quantity} — <b>{$itemTotal}đ</b>\n";
 
             $details = [];
             if ($item->sauce) {
-                $details[] = "Sốt: " . htmlspecialchars($item->sauce, ENT_QUOTES, 'UTF-8');
+                $details[] = 'Sốt: '.htmlspecialchars($item->sauce, ENT_QUOTES, 'UTF-8');
             }
-            if ($item->spice_level) {
-                $details[] = "Độ cay: " . htmlspecialchars($item->spice_level, ENT_QUOTES, 'UTF-8');
-            }
-            if (!empty($item->toppings) && is_array($item->toppings)) {
-                $details[] = "Topping: " . htmlspecialchars(implode(', ', $item->toppings), ENT_QUOTES, 'UTF-8');
+            if (! empty($item->toppings) && is_array($item->toppings)) {
+                $details[] = 'Topping: '.htmlspecialchars(implode(', ', $item->toppings), ENT_QUOTES, 'UTF-8');
             }
 
-            if (!empty($details)) {
-                $msg .= "     └ <i>(" . implode(' | ', $details) . ")</i>\n";
+            if (! empty($details)) {
+                $msg .= '     └ <i>('.implode(' | ', $details).")</i>\n";
             }
         }
 
         $msg .= "━━━━━━━━━━━━━━━━━━━━\n";
         $subtotal = number_format((float) $order->subtotal, 0, ',', '.');
-        $shipping = (float) $order->shipping_fee === 0.0 ? "0đ (Freeship 3km)" : number_format((float) $order->shipping_fee, 0, ',', '.') . "đ";
+        $shipping = (float) $order->shipping_fee === 0.0 ? '0đ (Freeship 3km)' : number_format((float) $order->shipping_fee, 0, ',', '.').'đ';
         $total = number_format((float) $order->total_amount, 0, ',', '.');
 
         $msg .= "💵 <b>Tạm tính:</b> {$subtotal}đ\n";
         $msg .= "🛵 <b>Phí ship:</b> {$shipping}\n";
-        
+
         if ((float) $order->discount > 0) {
             $discount = number_format((float) $order->discount, 0, ',', '.');
             $msg .= "🏷️ <b>Giảm giá:</b> -{$discount}đ\n";
@@ -167,7 +171,7 @@ class TelegramService
 
         $msg .= "💰 <b>TỔNG TIỀN THU:</b> <b>{$total}đ</b>\n";
         $msg .= "━━━━━━━━━━━━━━━━━━━━\n";
-        $msg .= "👉 <a href=\"" . url('/tra-cuu-don?code=' . urlencode($order->order_code)) . "\">Bấm vào đây để xem chi tiết đơn hàng</a>";
+        $msg .= '👉 <a href="'.url('/tra-cuu-don?code='.urlencode($order->order_code)).'">Bấm vào đây để xem chi tiết đơn hàng</a>';
 
         return $msg;
     }

@@ -46,6 +46,17 @@ class Sauce extends Model
         return $this->hasMany(OrderItem::class);
     }
 
+    public function getTaglineAttribute(): string
+    {
+        return $this->subtitle ?? $this->short_desc ?? '';
+    }
+
+    public function setTaglineAttribute(string $value): void
+    {
+        $this->subtitle = $value;
+        $this->short_desc = $value;
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);
@@ -54,5 +65,10 @@ class Sauce extends Model
     public function scopeAvailable($query)
     {
         return $query->where('is_available', true);
+    }
+
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('id', 'asc');
     }
 }

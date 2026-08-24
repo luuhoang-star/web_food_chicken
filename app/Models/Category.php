@@ -32,4 +32,9 @@ class Category extends Model
     {
         return $query->where('is_active', true);
     }
+
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('order', 'asc')->orderBy('id', 'asc');
+    }
 }

@@ -20,4 +20,9 @@ class SpiceLevel extends Model
         'level' => 'integer',
         'is_active' => 'boolean',
     ];
+
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('level', 'asc')->orderBy('id', 'asc');
+    }
 }

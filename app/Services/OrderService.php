@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
+use App\Models\Coupon;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\Sauce;
+use App\Models\SiteSetting;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class OrderService
 {
@@ -29,12 +32,30 @@ class OrderService
                 $subtotal += ($item['price'] * $item['quantity']);
             }
 
-            // Free shipping threshold for orders >= 100,000 VND
-            $shippingFee = ($subtotal >= 100000) ? 0 : 15000;
-            $totalAmount = $subtotal + $shippingFee;
+            // Đọc cấu hình phí ship động từ SiteSetting
+            $defaultShip = (float) (SiteSetting::get('shipping_fee_default') ?: 15000);
+            $freeshipThreshold = (float) (SiteSetting::get('freeship_threshold') ?: 100000);
+            $shippingFee = ($subtotal >= $freeshipThreshold) ? 0 : $defaultShip;
+
+            // Xử lý mã giảm giá Coupon nếu có
+            $discount = 0;
+            if (! empty($data['couponCode'])) {
+                $coupon = Coupon::where('code', strtoupper(trim((string) $data['couponCode'])))->first();
+                if ($coupon) {
+                    $validation = $coupon->isValidFor($subtotal);
+                    if ($validation['valid']) {
+                        $discount = $coupon->calculateDiscount($subtotal);
+                        $coupon->increment('used_count');
+                    }
+                }
+            } elseif (! empty($data['discount']) && is_numeric($data['discount'])) {
+                $discount = (float) $data['discount'];
+            }
+
+            $totalAmount = max(0, $subtotal + $shippingFee - $discount);
 
             // Unique Order Code: GAO-XXXXXX
-            $orderCode = 'GAO-'.strtoupper(substr(uniqid(), -6));
+            $orderCode = 'GAO-' . strtoupper(substr(uniqid(), -6));
 
             $order = Order::create([
                 'order_code' => $orderCode,
@@ -48,7 +69,7 @@ class OrderService
                 'order_status' => 'pending',
                 'subtotal' => $subtotal,
                 'shipping_fee' => $shippingFee,
-                'discount' => 0,
+                'discount' => $discount,
                 'total_amount' => $totalAmount,
             ]);
 
@@ -92,7 +113,7 @@ class OrderService
         try {
             $this->telegramService->sendOrderNotification($order);
         } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Telegram notification error: '.$e->getMessage());
+            Log::error('Telegram notification error: ' . $e->getMessage());
         }
 
         return $order;

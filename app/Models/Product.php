@@ -86,6 +86,28 @@ class Product extends Model
         return $this->sauce_selection === 'none';
     }
 
+    public function getImageUrlAttribute(): string
+    {
+        if (empty($this->image)) {
+            return asset('images/placeholder.jpg');
+        }
+
+        if (str_starts_with($this->image, 'http://') || str_starts_with($this->image, 'https://')) {
+            return $this->image;
+        }
+
+        if (str_starts_with($this->image, 'images/')) {
+            return asset($this->image);
+        }
+
+        return asset('images/products/'.$this->image);
+    }
+
+    public function scopeOrdered($query)
+    {
+        return $query->orderBy('order', 'asc')->orderBy('id', 'asc');
+    }
+
     public function scopeAvailable($query)
     {
         return $query->where('is_available', true);

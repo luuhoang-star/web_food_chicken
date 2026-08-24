@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreOrderRequest extends FormRequest
@@ -17,7 +18,7 @@ class StoreOrderRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -27,7 +28,9 @@ class StoreOrderRequest extends FormRequest
             'district' => 'required|string|max:100',
             'address' => 'required|string|max:500',
             'driverNote' => 'nullable|string|max:500',
-            'paymentMethod' => 'required|string|in:cod,momo,vnpay,zalopay',
+            'paymentMethod' => 'required|string|in:cod,momo,vnpay,zalopay,bank_transfer',
+            'couponCode' => 'nullable|string|max:50',
+            'discount' => 'nullable|numeric|min:0',
             'items' => 'required|array|min:1',
             'items.*.item_type' => 'nullable|string|in:product,sauce,combo',
             'items.*.product_id' => 'nullable|integer',

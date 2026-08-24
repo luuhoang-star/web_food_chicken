@@ -1,4 +1,4 @@
-<!-- DRAWER: GIỎ HÀNG CỦA BẠN (MATCHING SCREENSHOT 3 EXACTLY) -->
+<!-- DRAWER: GIỎ HÀNG CỦA BẠN (DYNAMIC SETTINGS) -->
 <div 
     x-show="isCartOpen" 
     class="fixed inset-0 z-50 overflow-hidden" 
@@ -41,24 +41,28 @@
                 </div>
                 <button 
                     @click="isCartOpen = false" 
-                    class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center transition-colors"
+                    class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center transition-colors cursor-pointer"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
             </div>
 
             <!-- Free Ship Notification Bar -->
+            @php
+                $freeshipLimit = (int) ($settings['freeship_threshold'] ?? 100000);
+                $defaultShipping = (int) ($settings['shipping_fee_default'] ?? 15000);
+            @endphp
             <div class="bg-white px-5 py-3 border-b border-orange-100/70 shrink-0">
                 <div class="flex items-center gap-2 text-xs font-black text-gray-800">
                     <span>🎉</span>
-                    <span x-show="totalPrice >= 100000">Bạn đã được <strong>FREE SHIP 3KM!</strong></span>
-                    <span x-show="totalPrice < 100000">Mua thêm <strong class="text-red-600" x-text="formatCurrency(100000 - totalPrice)"></strong> để được <strong>FREE SHIP!</strong></span>
+                    <span x-show="totalPrice >= {{ $freeshipLimit }}">Bạn đã được <strong>FREE SHIP 3KM!</strong></span>
+                    <span x-show="totalPrice < {{ $freeshipLimit }}">Mua thêm <strong class="text-red-600" x-text="formatCurrency({{ $freeshipLimit }} - totalPrice)"></strong> để được <strong>FREE SHIP!</strong></span>
                 </div>
                 <!-- Progress Bar -->
                 <div class="w-full h-1.5 bg-gray-100 rounded-full mt-2 overflow-hidden">
                     <div 
                         class="h-full bg-gradient-to-r from-red-600 to-amber-500 rounded-full transition-all duration-300"
-                        :style="'width: ' + Math.min(100, Math.round((totalPrice / 100000) * 100)) + '%'"
+                        :style="'width: ' + Math.min(100, Math.round((totalPrice / {{ $freeshipLimit }}) * 100)) + '%'"
                     ></div>
                 </div>
             </div>
@@ -113,13 +117,10 @@
                                     </span>
                                 </div>
 
-                                <!-- Option Tags (Sauce, Spice level, Toppings) for dishes -->
-                                <div class="flex flex-wrap gap-1.5 pt-0.5" x-show="item.item_type !== 'sauce' && (item.sauce || item.spiceLevel)">
+                                <!-- Option Tags (Sauce, Toppings) for dishes -->
+                                <div class="flex flex-wrap gap-1.5 pt-0.5" x-show="item.item_type !== 'sauce' && item.sauce">
                                     <span x-show="item.sauce" class="inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 px-2 py-0.5 rounded-md" x-text="'🌶️ ' + item.sauce">
                                         🌶️ Sốt Cay Hàn
-                                    </span>
-                                    <span x-show="item.spiceLevel" class="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-100 px-2 py-0.5 rounded-md" x-text="item.spiceLevel">
-                                        Cay nhẹ (Chuẩn vị)
                                     </span>
                                 </div>
 
@@ -188,11 +189,11 @@
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-500">Phí giao hàng:</span>
-                        <span class="text-emerald-600 font-bold" x-text="totalPrice >= 100000 ? '0đ (Freeship)' : '15.000đ'">0đ (Freeship)</span>
+                        <span class="font-bold" :class="totalPrice >= {{ $freeshipLimit }} ? 'text-emerald-600' : 'text-gray-900'" x-text="totalPrice >= {{ $freeshipLimit }} ? '0đ (Freeship)' : formatCurrency({{ $defaultShipping }})">0đ (Freeship)</span>
                     </div>
                     <div class="flex justify-between items-center text-base pt-2 border-t border-dashed border-gray-200">
                         <span class="font-black text-gray-900">Tổng cộng:</span>
-                        <span class="text-2xl font-black text-red-600" x-text="formatCurrency(totalPrice >= 100000 ? totalPrice : totalPrice + 15000)">313.000đ</span>
+                        <span class="text-2xl font-black text-red-600" x-text="formatCurrency(totalPrice >= {{ $freeshipLimit }} ? totalPrice : totalPrice + {{ $defaultShipping }})">313.000đ</span>
                     </div>
                 </div>
 

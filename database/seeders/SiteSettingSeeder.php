@@ -29,7 +29,29 @@ class SiteSettingSeeder extends Seeder
             ['key' => 'header_cta_text', 'value' => 'Đặt món', 'group' => 'header', 'type' => 'text', 'description' => 'Chữ nút CTA trên Header'],
             ['key' => 'header_cta_url', 'value' => '/menu', 'group' => 'header', 'type' => 'text', 'description' => 'Đường dẫn CTA Header'],
 
-            // Footer
+            // Delivery & Shipping
+            ['key' => 'shipping_fee_default', 'value' => '15000', 'group' => 'delivery', 'type' => 'number', 'description' => 'Phí ship mặc định'],
+            ['key' => 'freeship_threshold', 'value' => '100000', 'group' => 'delivery', 'type' => 'number', 'description' => 'Ngưỡng đơn freeship'],
+            ['key' => 'delivery_estimated_time', 'value' => '25 – 40 phút', 'group' => 'delivery', 'type' => 'text', 'description' => 'Thời gian giao hàng dự kiến'],
+
+            // Payment & VietQR
+            ['key' => 'payment_cod_enabled', 'value' => '1', 'group' => 'payment', 'type' => 'boolean', 'description' => 'Bật thanh toán COD'],
+            ['key' => 'payment_bank_enabled', 'value' => '1', 'group' => 'payment', 'type' => 'boolean', 'description' => 'Bật quét VietQR'],
+            ['key' => 'payment_momo_enabled', 'value' => '1', 'group' => 'payment', 'type' => 'boolean', 'description' => 'Bật ví MoMo'],
+            ['key' => 'bank_code', 'value' => 'MB', 'group' => 'payment', 'type' => 'text', 'description' => 'Mã ngân hàng VietQR'],
+            ['key' => 'bank_name', 'value' => 'MB Bank (Quân Đội)', 'group' => 'payment', 'type' => 'text', 'description' => 'Tên ngân hàng'],
+            ['key' => 'bank_account_number', 'value' => '0988888888', 'group' => 'payment', 'type' => 'text', 'description' => 'Số tài khoản ngân hàng'],
+            ['key' => 'bank_account_holder', 'value' => 'GAO CHICKEN HA NOI', 'group' => 'payment', 'type' => 'text', 'description' => 'Chủ tài khoản'],
+
+            // Marketing & Popup
+            ['key' => 'popup_enabled', 'value' => '0', 'group' => 'marketing', 'type' => 'boolean', 'description' => 'Bật popup khuyến mãi trang chủ'],
+            ['key' => 'popup_title', 'value' => '🎉 Ưu Đãi Đặc Biệt Hôm Nay!', 'group' => 'marketing', 'type' => 'text', 'description' => 'Tiêu đề popup'],
+            ['key' => 'popup_description', 'value' => 'Tặng ngay 01 hũ sốt đặc trưng hoặc Freeship 3km cho đơn hàng từ 100k hôm nay. Đặt ngay để nhận ưu đãi!', 'group' => 'marketing', 'type' => 'textarea', 'description' => 'Mô tả popup'],
+            ['key' => 'popup_cta_text', 'value' => 'Xem Thực Đơn Đặt Ngay →', 'group' => 'marketing', 'type' => 'text', 'description' => 'Nút bấm popup'],
+            ['key' => 'popup_cta_url', 'value' => '/menu', 'group' => 'marketing', 'type' => 'text', 'description' => 'Link popup'],
+            ['key' => 'popup_banner_image', 'value' => '', 'group' => 'marketing', 'type' => 'text', 'description' => 'Ảnh banner popup'],
+
+            // Footer & Brand
             ['key' => 'footer_description', 'value' => 'Thương hiệu Gà Sốt & Cơm chuẩn vị tại Hà Nội. Gà giòn rụm, đẫm sốt đậm đà, phục vụ nóng hổi tận tay khách hàng trong bán kính 3–5km.', 'group' => 'footer', 'type' => 'textarea', 'description' => 'Mô tả footer'],
             ['key' => 'store_address', 'value' => 'Hà Nội: Đống Đa, Cầu Giấy, Hoàn Kiếm, Hai Bà Trưng, Ba Đình, Thanh Xuân.', 'group' => 'contact', 'type' => 'text', 'description' => 'Địa bàn phục vụ'],
             ['key' => 'opening_hours', 'value' => 'Giờ nhận đơn: 09:30 – 22:00 hàng ngày', 'group' => 'contact', 'type' => 'text', 'description' => 'Khung giờ mở cửa'],
@@ -44,6 +66,15 @@ class SiteSettingSeeder extends Seeder
             ['key' => 'contact_zalo_url', 'value' => 'https://zalo.me/0973797151', 'group' => 'contact', 'type' => 'text', 'description' => 'Đường dẫn Chat Zalo'],
             ['key' => 'contact_messenger_url', 'value' => 'https://m.me/luuhoang.it', 'group' => 'contact', 'type' => 'text', 'description' => 'Đường dẫn Chat Messenger'],
             ['key' => 'contact_facebook_url', 'value' => 'https://facebook.com/luuhoang.it', 'group' => 'contact', 'type' => 'text', 'description' => 'Đường dẫn Trang cá nhân Facebook'],
+
+            // SEO & Tracking
+            ['key' => 'meta_title', 'value' => 'GAO - Gà Sốt & Cơm Hà Nội | Gà Giòn Sốt Đậm Vị', 'group' => 'seo', 'type' => 'text', 'description' => 'SEO Title'],
+            ['key' => 'meta_description', 'value' => 'Thương hiệu Gà Sốt & Cơm Hà Nội chuyên các món gà rán giòn rụm kết hợp cùng 4 vị sốt độc quyền chuẩn vị Hà Nội. Giao nhanh 25-40 phút.', 'group' => 'seo', 'type' => 'textarea', 'description' => 'SEO Description'],
+            ['key' => 'meta_keywords', 'value' => 'gà sốt, gà rán hà nội, cơm gà sốt, gao gà rán', 'group' => 'seo', 'type' => 'text', 'description' => 'SEO Keywords'],
+            ['key' => 'og_image', 'value' => '', 'group' => 'seo', 'type' => 'text', 'description' => 'Ảnh chia sẻ Facebook/Zalo'],
+            ['key' => 'favicon_url', 'value' => '', 'group' => 'seo', 'type' => 'text', 'description' => 'Favicon URL'],
+            ['key' => 'google_analytics_id', 'value' => '', 'group' => 'seo', 'type' => 'text', 'description' => 'Google Analytics ID'],
+            ['key' => 'facebook_pixel_id', 'value' => '', 'group' => 'seo', 'type' => 'text', 'description' => 'Facebook Pixel ID'],
 
             // Telegram Order Notifications
             ['key' => 'telegram_bot_token', 'value' => '', 'group' => 'notification', 'type' => 'text', 'description' => 'Telegram Bot Token'],

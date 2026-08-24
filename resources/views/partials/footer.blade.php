@@ -73,7 +73,13 @@
 
         <div class="mt-12 pt-8 border-t border-gray-800/80 text-center text-xs text-gray-500 flex flex-col sm:flex-row items-center justify-between gap-4">
             <span>{{ $settings['copyright'] ?? '© 2026 GAO - Gà Sốt & Cơm Hà Nội. All rights reserved.' }}</span>
-            <span>{{ $settings['footer_slogan'] ?? 'Thực đơn gà sốt đậm vị chuẩn Hà Nội' }}</span>
+            <div class="flex items-center gap-4">
+                <span>{{ $settings['footer_slogan'] ?? 'Thực đơn gà sốt đậm vị chuẩn Hà Nội' }}</span>
+                <span class="text-gray-700">•</span>
+                <a href="{{ route('admin.login') }}" class="text-gray-500 hover:text-gray-300 transition-colors" title="Trang Quản Trị Bếp">
+                    🔒 Quản Trị
+                </a>
+            </div>
         </div>
     </div>
 </footer>

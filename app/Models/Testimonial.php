@@ -28,6 +28,16 @@ class Testimonial extends Model
         'order' => 'integer',
     ];
 
+    public function getCommentAttribute(): string
+    {
+        return (string) ($this->content ?? '');
+    }
+
+    public function setCommentAttribute(string $value): void
+    {
+        $this->content = $value;
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true);

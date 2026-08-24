@@ -4,8 +4,49 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'GAO - Gà Sốt & Cơm Hà Nội | Gà Giòn Sốt Đậm Vị')</title>
+    <title>@yield('title', $settings['meta_title'] ?? 'GAO - Gà Sốt & Cơm Hà Nội | Gà Giòn Sốt Đậm Vị')</title>
     
+    <!-- Meta SEO & Open Graph -->
+    <meta name="description" content="{{ $settings['meta_description'] ?? 'Thương hiệu Gà Sốt & Cơm Hà Nội chuyên các món gà rán giòn rụm kết hợp cùng 4 vị sốt độc quyền chuẩn vị Hà Nội. Giao nhanh 25-40 phút.' }}">
+    <meta name="keywords" content="{{ $settings['meta_keywords'] ?? 'gà sốt, gà rán hà nội, cơm gà sốt, gao gà rán' }}">
+    <meta property="og:title" content="{{ $settings['meta_title'] ?? 'GAO - Gà Sốt & Cơm Hà Nội' }}">
+    <meta property="og:description" content="{{ $settings['meta_description'] ?? 'Gà Giòn Sốt Đậm Vị Hà Nội - Đặt món giao nhanh 25-40 phút.' }}">
+    @if(!empty($settings['og_image']))
+        <meta property="og:image" content="{{ str_starts_with($settings['og_image'], 'http') ? $settings['og_image'] : asset($settings['og_image']) }}">
+    @endif
+    @if(!empty($settings['favicon_url']))
+        <link rel="icon" href="{{ str_starts_with($settings['favicon_url'], 'http') ? $settings['favicon_url'] : asset($settings['favicon_url']) }}">
+    @else
+        <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+        <link rel="alternate icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+    @endif
+
+    <!-- Tracking Scripts (GA4 & FB Pixel) -->
+    @if(!empty($settings['google_analytics_id']))
+        <script async src="https://www.googletagmanager.com/gtag/js?id={{ $settings['google_analytics_id'] }}"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '{{ $settings['google_analytics_id'] }}');
+        </script>
+    @endif
+
+    @if(!empty($settings['facebook_pixel_id']))
+        <script>
+            !function(f,b,e,v,n,t,s)
+            {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+            n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+            if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+            n.queue=[];t=b.createElement(e);t.async=!0;
+            t.src=v;s=b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t,s)}(window, document,'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+            fbq('init', '{{ $settings['facebook_pixel_id'] }}');
+            fbq('track', 'PageView');
+        </script>
+    @endif
+
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,13 +90,13 @@
         window.GAO_DATA = {
             categories: @json($categories ?? []),
             sauces: @json($sauces ?? []),
-            spiceLevels: @json($spiceLevels ?? []),
             toppings: @json($toppings ?? []),
             products: @json($allProducts ?? $products ?? []),
             popularDishes: @json($popularDishes ?? []),
             combos: @json($combos ?? []),
             upsellItems: @json($upsellItems ?? [])
         };
+        window.GAO_SETTINGS = @json($settings ?? []);
     </script>
 
     <!-- GAO Store Alpine State -->
@@ -125,6 +166,9 @@
 
     <!-- Modal: Đặt Đơn Thành Công -->
     @include('modals.success-modal')
+
+    <!-- Modal: Popup Khuyến Mãi Trang Chủ -->
+    @include('modals.promo-popup')
 
     <!-- Toast Notification -->
     @include('partials.toast')

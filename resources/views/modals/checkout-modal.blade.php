@@ -1,4 +1,4 @@
-<!-- MODAL 2: THANH TOÁN NHANH (HÀ NỘI) - MATCHING SCREENSHOT 5 & 6 EXACTLY -->
+<!-- MODAL 2: THANH TOÁN NHANH (HÀ NỘI) - DYNAMIC VIETQR & COUPONS & SETTINGS -->
 <div 
     x-show="openCheckoutModal" 
     class="fixed inset-0 z-50 overflow-y-auto" 
@@ -6,6 +6,82 @@
     role="dialog" 
     aria-modal="true"
     x-cloak
+    x-data="{
+        appliedCoupon: null,
+        couponInput: '',
+        couponError: '',
+        couponSuccess: '',
+        isApplyingCoupon: false,
+
+        getShippingFee() {
+            const threshold = Number('{{ (int) ($settings['freeship_threshold'] ?? 100000) }}');
+            const defaultFee = Number('{{ (int) ($settings['shipping_fee_default'] ?? 15000) }}');
+            return (this.totalPrice >= threshold) ? 0 : defaultFee;
+        },
+
+        getDiscountAmount() {
+            return this.appliedCoupon ? Number(this.appliedCoupon.discount_amount) : 0;
+        },
+
+        getFinalTotal() {
+            const ship = this.getShippingFee();
+            const discount = this.getDiscountAmount();
+            return Math.max(0, this.totalPrice + ship - discount);
+        },
+
+        async applyCouponCode() {
+            if (!this.couponInput.trim()) {
+                this.couponError = 'Vui lòng nhập mã giảm giá.';
+                this.couponSuccess = '';
+                return;
+            }
+            this.isApplyingCoupon = true;
+            this.couponError = '';
+            this.couponSuccess = '';
+
+            try {
+                const res = await fetch('{{ route('coupons.apply') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]') ? document.querySelector('meta[name=csrf-token]').content : ''
+                    },
+                    body: JSON.stringify({
+                        code: this.couponInput.trim(),
+                        subtotal: this.totalPrice
+                    })
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    this.appliedCoupon = data;
+                    this.couponSuccess = data.message;
+                    this.couponError = '';
+                    this.checkoutForm.couponCode = data.coupon_code;
+                    this.checkoutForm.discount = data.discount_amount;
+                } else {
+                    this.appliedCoupon = null;
+                    this.couponError = data.message || 'Mã giảm giá không hợp lệ.';
+                    this.couponSuccess = '';
+                    this.checkoutForm.couponCode = '';
+                    this.checkoutForm.discount = 0;
+                }
+            } catch (err) {
+                this.couponError = 'Lỗi kết nối máy chủ khi áp dụng mã.';
+            } finally {
+                this.isApplyingCoupon = false;
+            }
+        },
+
+        removeCoupon() {
+            this.appliedCoupon = null;
+            this.couponInput = '';
+            this.couponSuccess = '';
+            this.couponError = '';
+            this.checkoutForm.couponCode = '';
+            this.checkoutForm.discount = 0;
+        }
+    }"
 >
     <div class="flex items-center justify-center min-h-screen p-4 text-center sm:p-0">
         <!-- Backdrop -->
@@ -41,7 +117,7 @@
                 </h3>
                 <button 
                     @click="openCheckoutModal = false" 
-                    class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center transition-colors"
+                    class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center transition-colors cursor-pointer"
                 >
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/></svg>
                 </button>
@@ -53,7 +129,7 @@
                 <!-- Delivery Time Banner -->
                 <div class="bg-[#FFF5F5] border border-red-100 rounded-2xl p-3.5 flex items-center gap-2.5 text-xs sm:text-sm font-bold text-red-600">
                     <span class="text-lg">🛵</span>
-                    <span><strong>Giao tiêu chuẩn:</strong> Dự kiến đến sau 25 – 40 phút</span>
+                    <span><strong>Giao tiêu chuẩn:</strong> Dự kiến đến sau {{ $settings['delivery_estimated_time'] ?? '25 – 40 phút' }}</span>
                 </div>
 
                 <!-- Input 1: Họ và tên -->
@@ -128,6 +204,54 @@
                     >
                 </div>
 
+                <!-- Section: Mã Giảm Giá / Voucher Ưu Đãi -->
+                <div class="space-y-2 pt-1 border-t border-gray-100">
+                    <label class="block text-xs sm:text-sm font-black text-gray-900 flex items-center gap-1.5">
+                        <span>🏷️</span>
+                        <span>Mã Giảm Giá / Voucher</span>
+                    </label>
+
+                    <div class="flex items-center gap-2">
+                        <input 
+                            type="text" 
+                            x-model="couponInput"
+                            placeholder="Nhập mã (VD: GAO20K)..."
+                            :disabled="appliedCoupon !== null"
+                            class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-xs sm:text-sm font-bold uppercase tracking-wider focus:outline-none focus:border-red-500 font-mono disabled:bg-gray-100"
+                        >
+                        <template x-if="!appliedCoupon">
+                            <button 
+                                @click="applyCouponCode()"
+                                type="button" 
+                                :disabled="isApplyingCoupon"
+                                class="px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-black transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                            >
+                                <span x-show="!isApplyingCoupon">Áp Dụng</span>
+                                <span x-show="isApplyingCoupon">Đang check...</span>
+                            </button>
+                        </template>
+                        <template x-if="appliedCoupon">
+                            <button 
+                                @click="removeCoupon()"
+                                type="button" 
+                                class="px-3 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors shrink-0 cursor-pointer"
+                            >
+                                ✕ Huỷ mã
+                            </button>
+                        </template>
+                    </div>
+
+                    <div x-show="couponSuccess" class="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
+                        <span>✅</span>
+                        <span x-text="couponSuccess"></span>
+                    </div>
+
+                    <div x-show="couponError" class="text-[11px] font-bold text-rose-600 flex items-center gap-1">
+                        <span>❌</span>
+                        <span x-text="couponError"></span>
+                    </div>
+                </div>
+
                 <!-- Section: Phương thức thanh toán -->
                 <div class="space-y-2.5 pt-1">
                     <label class="block text-xs sm:text-sm font-black text-gray-900">
@@ -136,6 +260,7 @@
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
                         
                         <!-- Option 1: COD -->
+                        @if(($settings['payment_cod_enabled'] ?? '1') == '1')
                         <button 
                             @click="checkoutForm.paymentMethod = 'cod'"
                             type="button"
@@ -145,8 +270,10 @@
                             <span class="text-base">💵</span>
                             <span class="text-xs font-black text-gray-900">Tiền mặt (COD)</span>
                         </button>
+                        @endif
 
                         <!-- Option 2: VietQR Chuyển khoản -->
+                        @if(($settings['payment_bank_enabled'] ?? '1') == '1')
                         <button 
                             @click="checkoutForm.paymentMethod = 'bank_transfer'"
                             type="button"
@@ -154,10 +281,12 @@
                             :class="checkoutForm.paymentMethod === 'bank_transfer' ? 'border-red-500 bg-red-50/80 shadow-xs ring-2 ring-red-500/20' : 'border-gray-200/80 bg-white hover:border-gray-300'"
                         >
                             <span class="text-base">📱</span>
-                            <span class="text-xs font-black text-gray-900">Quét mã VietQR</span>
+                            <span class="text-xs font-black text-gray-900">Quét VietQR</span>
                         </button>
+                        @endif
 
                         <!-- Option 3: MoMo -->
+                        @if(($settings['payment_momo_enabled'] ?? '1') == '1')
                         <button 
                             @click="checkoutForm.paymentMethod = 'momo'"
                             type="button"
@@ -167,6 +296,7 @@
                             <span class="w-3.5 h-3.5 rounded-full bg-[#A50064] inline-block shrink-0"></span>
                             <span class="text-xs font-black text-gray-900">Ví MoMo</span>
                         </button>
+                        @endif
 
                     </div>
 
@@ -177,12 +307,12 @@
                     >
                         <div class="flex items-center justify-between text-xs font-black text-red-600">
                             <span>⚡ Quét mã QR thanh toán nhanh</span>
-                            <span>MB Bank</span>
+                            <span>{{ $settings['bank_name'] ?? 'MB Bank' }}</span>
                         </div>
                         <div class="flex flex-col sm:flex-row items-center gap-4">
                             <div class="w-32 h-32 p-1.5 bg-white border border-gray-200 rounded-xl shadow-xs shrink-0">
                                 <img 
-                                    :src="'https://img.vietqr.io/image/MB-0988888888-compact2.png?amount=' + (totalPrice >= 100000 ? totalPrice : totalPrice + 15000) + '&addInfo=GAO%20' + encodeURIComponent(checkoutForm.phone || 'DONHANG') + '&accountName=GAO%20CHICKEN%20HA%20NOI'" 
+                                    :src="'https://img.vietqr.io/image/{{ $settings['bank_code'] ?? 'MB' }}-{{ $settings['bank_account_number'] ?? '0988888888' }}-compact2.png?amount=' + getFinalTotal() + '&addInfo=GAO%20' + encodeURIComponent(checkoutForm.phone || 'DONHANG') + '&accountName={{ urlencode($settings['bank_account_holder'] ?? 'GAO CHICKEN HA NOI') }}'" 
                                     alt="VietQR Code" 
                                     class="w-full h-full object-contain"
                                 >
@@ -190,15 +320,15 @@
                             <div class="space-y-1.5 text-xs flex-1 w-full">
                                 <div class="flex justify-between border-b border-gray-100 pb-1">
                                     <span class="text-gray-500">Ngân hàng:</span>
-                                    <span class="font-black text-gray-900">MB Bank</span>
+                                    <span class="font-black text-gray-900">{{ $settings['bank_name'] ?? 'MB Bank' }}</span>
                                 </div>
                                 <div class="flex justify-between border-b border-gray-100 pb-1">
                                     <span class="text-gray-500">Số tài khoản:</span>
-                                    <span class="font-black text-red-600 tracking-wider">0988 888 888</span>
+                                    <span class="font-black text-red-600 tracking-wider">{{ $settings['bank_account_number'] ?? '0988 888 888' }}</span>
                                 </div>
                                 <div class="flex justify-between border-b border-gray-100 pb-1">
                                     <span class="text-gray-500">Chủ tài khoản:</span>
-                                    <span class="font-bold text-gray-900">GAO CHICKEN</span>
+                                    <span class="font-bold text-gray-900 uppercase">{{ $settings['bank_account_holder'] ?? 'GAO CHICKEN HA NOI' }}</span>
                                 </div>
                                 <div class="flex justify-between">
                                     <span class="text-gray-500">Nội dung CK:</span>
@@ -209,7 +339,7 @@
                     </div>
                 </div>
 
-                <!-- Summary Box: MÓN ĐÃ CHỌN -->
+                <!-- Summary Box: MÓN ĐÃ CHỌN & GIÁ TIỀN -->
                 <div class="bg-[#FAF6F0] rounded-2xl p-4 border border-orange-200/60 space-y-3">
                     <div class="text-xs font-black text-gray-700 uppercase tracking-wider">
                         MÓN ĐÃ CHỌN:
@@ -228,11 +358,29 @@
                         </template>
                     </div>
 
+                    <!-- Breakdown: Subtotal, Shipping, Discount -->
+                    <div class="pt-2 border-t border-gray-200/80 text-xs space-y-1 font-semibold text-gray-600">
+                        <div class="flex justify-between">
+                            <span>Tiền món:</span>
+                            <span class="font-bold text-gray-900" x-text="formatCurrency(totalPrice)">0đ</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Phí giao hàng:</span>
+                            <span class="font-bold" :class="getShippingFee() === 0 ? 'text-emerald-600' : 'text-gray-900'" x-text="getShippingFee() === 0 ? 'Miễn phí (Freeship)' : formatCurrency(getShippingFee())"></span>
+                        </div>
+                        <template x-if="appliedCoupon">
+                            <div class="flex justify-between text-emerald-600 font-bold">
+                                <span>Giảm giá (<span x-text="appliedCoupon.coupon_code"></span>):</span>
+                                <span x-text="'-' + formatCurrency(getDiscountAmount())"></span>
+                            </div>
+                        </template>
+                    </div>
+
                     <!-- Total Summary -->
                     <div class="pt-3 border-t border-dashed border-gray-300 flex items-center justify-between">
                         <span class="text-sm font-bold text-gray-900">Tổng thanh toán:</span>
-                        <span class="text-xl font-black text-red-600" x-text="formatCurrency(totalPrice >= 100000 ? totalPrice : totalPrice + 15000)">
-                            313.000đ
+                        <span class="text-xl font-black text-red-600" x-text="formatCurrency(getFinalTotal())">
+                            0đ
                         </span>
                     </div>
                 </div>
@@ -241,13 +389,28 @@
 
             <!-- Modal Footer: Submit Order Button -->
             <div class="p-4 sm:p-5 bg-white border-t border-gray-100 shrink-0">
-                <button 
-                    @click="submitOrder()" 
-                    type="button" 
-                    class="w-full py-4 rounded-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-black text-base tracking-wide uppercase shadow-xl red-glow text-center transition-all active:scale-95"
-                >
-                    Xác nhận đặt đơn
-                </button>
+                @if(($settings['store_open_status'] ?? 'open') === 'paused')
+                    <div class="space-y-2.5">
+                        <div class="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-xs font-bold text-rose-800 text-center">
+                            ⚠️ Bếp GAO đang tạm dừng nhận đơn ít phút (đang xử lý giao hàng). Quý khách vui lòng gọi Hotline: <a href="tel:{{ $settings['hotline'] ?? '0988.868.GAO' }}" class="underline font-black text-rose-900">{{ $settings['hotline'] ?? '0988.868.GAO' }}</a> nếu cần gấp nhé!
+                        </div>
+                        <button 
+                            type="button" 
+                            disabled
+                            class="w-full py-4 rounded-full bg-gray-300 text-gray-500 font-black text-sm tracking-wide uppercase text-center cursor-not-allowed"
+                        >
+                            Bếp Đang Tạm Dừng Nhận Đơn
+                        </button>
+                    </div>
+                @else
+                    <button 
+                        @click="submitOrder()" 
+                        type="button" 
+                        class="w-full py-4 rounded-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-black text-base tracking-wide uppercase shadow-xl red-glow text-center transition-all active:scale-95 cursor-pointer"
+                    >
+                        Xác nhận đặt đơn
+                    </button>
+                @endif
             </div>
 
         </div>

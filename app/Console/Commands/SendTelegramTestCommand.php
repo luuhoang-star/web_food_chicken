@@ -32,11 +32,12 @@ class SendTelegramTestCommand extends Command
         $result = $telegramService->sendTestMessage($customMessage);
 
         if ($result['success']) {
-            $this->info('✅ ' . $result['message']);
+            $this->info('✅ '.$result['message']);
+
             return Command::SUCCESS;
         }
 
-        $this->error('❌ ' . $result['message']);
+        $this->error('❌ '.$result['message']);
         $this->line('');
         $this->line('👉 Hướng dẫn cấu hình Telegram trong file .env:');
         $this->line('   TELEGRAM_BOT_TOKEN=your_bot_token_here');

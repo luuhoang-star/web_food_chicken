@@ -1,9 +1,16 @@
 <!-- TOP NOTIFICATION BAR -->
-<div class="bg-gradient-to-r from-red-600 to-amber-600 text-white text-xs font-semibold py-1.5 px-4 text-center tracking-wide flex items-center justify-center gap-2">
-    <span class="inline-block animate-pulse">🔥</span>
-    <span>{{ $settings['top_notification'] ?? 'Ưu đãi hôm nay: Freeship bán kính 3km cho đơn hàng từ 100k!' }}</span>
-    <span class="hidden md:inline">• Hotline đặt món: <strong>{{ $settings['hotline'] ?? '0988.868.GAO' }}</strong></span>
-</div>
+@if(($settings['store_open_status'] ?? 'open') === 'paused')
+    <div class="bg-rose-700 text-white text-xs font-bold py-2 px-4 text-center tracking-wide flex items-center justify-center gap-2 shadow-md">
+        <span class="inline-block animate-pulse text-base">⚠️</span>
+        <span><strong>BẾP ĐANG TẠM DỪNG NHẬN ĐƠN ÍT PHÚT:</strong> Bếp đang bận xử lý giao hàng / chuẩn bị gà nóng. Quý khách vẫn có thể xem thực đơn hoặc gọi Hotline: <strong>{{ $settings['hotline'] ?? '0988.868.GAO' }}</strong></span>
+    </div>
+@else
+    <div class="bg-gradient-to-r from-red-600 to-amber-600 text-white text-xs font-semibold py-1.5 px-4 text-center tracking-wide flex items-center justify-center gap-2">
+        <span class="inline-block animate-pulse">🔥</span>
+        <span>{{ $settings['top_notification'] ?? 'Ưu đãi hôm nay: Freeship bán kính 3km cho đơn hàng từ 100k!' }}</span>
+        <span class="hidden md:inline">• Hotline đặt món: <strong>{{ $settings['hotline'] ?? '0988.868.GAO' }}</strong></span>
+    </div>
+@endif
 
 <!-- MAIN NAVBAR -->
 <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-orange-100/80 transition-all duration-300 shadow-xs">

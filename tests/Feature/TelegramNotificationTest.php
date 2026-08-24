@@ -1,9 +1,7 @@
 <?php
 
 use App\Models\Product;
-use App\Models\Sauce;
 use App\Services\OrderService;
-use App\Services\TelegramService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 
@@ -23,7 +21,7 @@ test('telegram service sends order notification with formatted html message', fu
         'https://api.telegram.org/bot123456:TEST_BOT_TOKEN/sendMessage' => Http::response(['ok' => true], 200),
     ]);
 
-    $service = new OrderService();
+    $service = new OrderService;
     $product = Product::first();
 
     $order = $service->createOrder([
@@ -62,7 +60,7 @@ test('order creation succeeds even if telegram api fails (failsafe)', function (
         'https://api.telegram.org/*' => Http::response(['ok' => false, 'description' => 'Unauthorized'], 401),
     ]);
 
-    $service = new OrderService();
+    $service = new OrderService;
     $product = Product::first();
 
     $order = $service->createOrder([

@@ -22,6 +22,8 @@ class DatabaseSeeder extends Seeder
             BenefitSeeder::class,
             TestimonialSeeder::class,
             SiteSettingSeeder::class,
+            CouponSeeder::class,
+            AdminUserSeeder::class,
         ]);
     }
 }

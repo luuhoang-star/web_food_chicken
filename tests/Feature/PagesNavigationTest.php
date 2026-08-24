@@ -1,7 +1,13 @@
 <?php
 
+use App\Models\Benefit;
+use App\Models\Combo;
+use App\Models\Hero;
 use App\Models\Product;
 use App\Models\Sauce;
+use App\Models\SiteSetting;
+use App\Models\Testimonial;
+use App\Services\OrderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
@@ -119,7 +125,7 @@ test('product model tag accessor sanitizes legacy tags', function () {
 });
 
 test('order service calculates free shipping for orders over 100k', function () {
-    $service = new \App\Services\OrderService();
+    $service = new OrderService;
     $product = Product::first();
 
     $order = $service->createOrder([
@@ -146,7 +152,7 @@ test('order service calculates free shipping for orders over 100k', function () 
 });
 
 test('combos have items relationship and active scope', function () {
-    $combos = \App\Models\Combo::with('items.product')->active()->ordered()->get();
+    $combos = Combo::with('items.product')->active()->ordered()->get();
     expect($combos->count())->toBeGreaterThanOrEqual(3);
 
     $combo2 = $combos->firstWhere('slug', 'combo-2-nguoi');
@@ -156,7 +162,7 @@ test('combos have items relationship and active scope', function () {
 });
 
 test('hero section renders dynamic data from hero model', function () {
-    $hero = \App\Models\Hero::active()->ordered()->first();
+    $hero = Hero::active()->ordered()->first();
     expect($hero)->not->toBeNull();
     expect($hero->title)->toBe('GÀ GIÒN.');
     expect($hero->title_highlight)->toBe('SỐT ĐẬM.');
@@ -169,7 +175,7 @@ test('hero section renders dynamic data from hero model', function () {
 });
 
 test('benefits section renders dynamic USP items from database', function () {
-    $benefits = \App\Models\Benefit::active()->ordered()->get();
+    $benefits = Benefit::active()->ordered()->get();
     expect($benefits->count())->toBe(3);
 
     $response = $this->get(route('home'));
@@ -181,7 +187,7 @@ test('benefits section renders dynamic USP items from database', function () {
 });
 
 test('testimonials section renders dynamic customer reviews from database', function () {
-    $testimonials = \App\Models\Testimonial::active()->ordered()->get();
+    $testimonials = Testimonial::active()->ordered()->get();
     expect($testimonials->count())->toBe(3);
 
     $response = $this->get(route('home'));
@@ -193,7 +199,7 @@ test('testimonials section renders dynamic customer reviews from database', func
 });
 
 test('header and footer render dynamic settings from site_settings table', function () {
-    $settings = \App\Models\SiteSetting::allKeyed();
+    $settings = SiteSetting::allKeyed();
     expect($settings)->toHaveKey('hotline');
     expect($settings['hotline'])->toBe('0988.868.GAO');
 
@@ -226,7 +232,7 @@ test('order tracking page renders search form and intro highlights', function ()
 });
 
 test('order tracking can find order by order code or phone number', function () {
-    $service = new \App\Services\OrderService();
+    $service = new OrderService;
     $product = Product::first();
 
     $order = $service->createOrder([
