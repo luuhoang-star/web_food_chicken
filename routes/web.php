@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\ProductAdminController;
 use App\Http\Controllers\Admin\ProfileAdminController;
 use App\Http\Controllers\Admin\SauceAdminController;
 use App\Http\Controllers\Admin\SettingAdminController;
+use App\Http\Controllers\DeployWebhookController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\OrderController;
@@ -43,6 +44,9 @@ Route::get('/sauces/{slug}', fn (string $slug) => redirect()->route('menu', ['sa
 Route::get('/product/{slug}', [ProductController::class, 'show'])->name('product.show');
 Route::post('/api/orders', [OrderController::class, 'store'])->name('orders.store');
 Route::post('/api/coupons/apply', [OrderController::class, 'applyCoupon'])->name('coupons.apply');
+
+// Automated Deployment Webhook (GitHub / CI/CD)
+Route::match(['get', 'post'], '/webhook/deploy', [DeployWebhookController::class, 'handle'])->name('webhook.deploy');
 
 /*
 |--------------------------------------------------------------------------
