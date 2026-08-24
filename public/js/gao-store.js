@@ -141,7 +141,9 @@ function gaoApp() {
             district: 'Quận Cầu Giấy',
             address: '',
             driverNote: '',
-            paymentMethod: 'cod' // 'cod', 'momo', 'vnpay', 'zalopay'
+            paymentMethod: 'cod', // 'cod', 'momo', 'bank_transfer', 'zalopay'
+            couponCode: '',
+            discount: 0
         },
 
         orderSuccessData: {
@@ -595,6 +597,8 @@ function gaoApp() {
                 address: this.checkoutForm.address,
                 driverNote: this.checkoutForm.driverNote,
                 paymentMethod: this.checkoutForm.paymentMethod,
+                couponCode: this.checkoutForm.couponCode || null,
+                discount: Number(this.checkoutForm.discount) || 0,
                 items: this.cartItems.map(i => ({
                     item_type: i.item_type || 'product',
                     product_id: i.product_id || null,
