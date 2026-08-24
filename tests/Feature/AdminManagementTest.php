@@ -10,6 +10,7 @@ use App\Models\Topping;
 use App\Models\User;
 use App\Services\OrderService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
 
@@ -577,7 +578,7 @@ test('admin can view profile, update name and email, and change password', funct
     ]);
     $updatePassword->assertRedirect();
     $admin->refresh();
-    expect(\Illuminate\Support\Facades\Hash::check('newpassword888', $admin->password))->toBeTrue();
+    expect(Hash::check('newpassword888', $admin->password))->toBeTrue();
 });
 
 test('admin can export orders list to csv file with utf-8 bom', function () {

@@ -136,6 +136,7 @@ class CategoryAdminController extends Controller
                     'message' => $msg,
                 ], 422);
             }
+
             return back()->with('error', $msg);
         }
 

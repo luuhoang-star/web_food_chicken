@@ -50,7 +50,7 @@
     <!-- Google Fonts: Plus Jakarta Sans -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600;1,700&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -59,7 +59,7 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        sans: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
                     },
                     colors: {
                         gao: {
@@ -73,12 +73,41 @@
                             700: '#b81c0c',
                             800: '#96170a',
                             900: '#7a1409',
+                        },
+                        amber: {
+                            50: '#fffbeb',
+                            100: '#fef3c7',
+                            200: '#fde68a',
+                            300: '#fcd34d',
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                            700: '#b45309',
+                            800: '#92400e',
+                            900: '#78350f',
                         }
                     },
                     boxShadow: {
-                        'soft': '0 4px 20px -2px rgba(224, 49, 32, 0.12)',
-                        'card': '0 4px 25px 0 rgba(0, 0, 0, 0.05)',
-                        'floating': '0 20px 40px -10px rgba(209, 36, 19, 0.3)',
+                        'soft': '0 4px 20px -2px rgba(224, 49, 32, 0.08)',
+                        'card': '0 10px 30px -5px rgba(0, 0, 0, 0.04), 0 4px 6px -2px rgba(0, 0, 0, 0.02)',
+                        'card-hover': '0 20px 35px -8px rgba(209, 36, 19, 0.12), 0 8px 16px -4px rgba(0, 0, 0, 0.04)',
+                        'floating': '0 20px 40px -10px rgba(209, 36, 19, 0.35)',
+                        'glow': '0 0 25px rgba(224, 49, 32, 0.3)',
+                    },
+                    borderRadius: {
+                        '2xl': '1rem',
+                        '3xl': '1.5rem',
+                        '4xl': '2rem',
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'bounce-subtle': 'bounceSubtle 2s infinite ease-in-out',
+                    },
+                    keyframes: {
+                        bounceSubtle: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-4px)' },
+                        }
                     }
                 }
             }
@@ -108,40 +137,64 @@
             font-family: 'Plus Jakarta Sans', sans-serif;
             background-color: #faf6f0;
             color: #1a1a1a;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
         [x-cloak] { display: none !important; }
         
         .hero-glow {
-            background: radial-gradient(circle at 60% 50%, rgba(254, 215, 170, 0.35) 0%, rgba(250, 246, 240, 0) 70%);
+            background: radial-gradient(circle at 60% 40%, rgba(254, 215, 170, 0.4) 0%, rgba(254, 243, 199, 0.2) 40%, rgba(250, 246, 240, 0) 70%);
         }
         
         .red-glow {
-            box-shadow: 0 10px 30px -5px rgba(209, 36, 19, 0.4);
+            box-shadow: 0 10px 30px -5px rgba(209, 36, 19, 0.38);
+        }
+
+        .red-glow-lg {
+            box-shadow: 0 20px 40px -10px rgba(209, 36, 19, 0.45);
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
         }
 
         /* Custom scrollbar */
         ::-webkit-scrollbar {
-            width: 6px;
+            width: 7px;
+            height: 7px;
         }
         ::-webkit-scrollbar-track {
             background: #faf6f0;
         }
         ::-webkit-scrollbar-thumb {
             background: #e2d8cb;
-            border-radius: 4px;
+            border-radius: 6px;
         }
         ::-webkit-scrollbar-thumb:hover {
             background: #d12413;
         }
+
+        .scrollbar-none::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-none {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
     </style>
 </head>
-<body x-data="gaoApp()" class="antialiased text-gray-800 bg-[#FAF6F0] selection:bg-red-500 selection:text-white">
+<body x-data="gaoApp()" class="antialiased text-gray-800 bg-[#FAF6F0] selection:bg-red-500 selection:text-white flex flex-col min-h-screen">
 
-    <!-- Header Module -->
+    <!-- Header Module with Mobile Nav Drawer -->
     @include('partials.header')
 
     <!-- Main Content Slot -->
-    @yield('content')
+    <main class="flex-1">
+        @yield('content')
+    </main>
 
     <!-- Footer Module -->
     @include('partials.footer')

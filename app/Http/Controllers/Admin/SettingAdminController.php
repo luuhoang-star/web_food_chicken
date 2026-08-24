@@ -39,9 +39,9 @@ class SettingAdminController extends Controller
                 File::makeDirectory($uploadDir, 0755, true);
             }
             $file = $request->file('popup_banner_file');
-            $fileName = 'popup_' . time() . '_' . Str::random(6) . '.' . $file->getClientOriginalExtension();
+            $fileName = 'popup_'.time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
             $file->move($uploadDir, $fileName);
-            $inputs['popup_banner_image'] = 'images/settings/' . $fileName;
+            $inputs['popup_banner_image'] = 'images/settings/'.$fileName;
         }
 
         // Xử lý upload ảnh chia sẻ OG Image
@@ -51,9 +51,9 @@ class SettingAdminController extends Controller
                 File::makeDirectory($uploadDir, 0755, true);
             }
             $file = $request->file('og_image_file');
-            $fileName = 'og_' . time() . '_' . Str::random(6) . '.' . $file->getClientOriginalExtension();
+            $fileName = 'og_'.time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
             $file->move($uploadDir, $fileName);
-            $inputs['og_image'] = 'images/settings/' . $fileName;
+            $inputs['og_image'] = 'images/settings/'.$fileName;
         }
 
         // Xử lý upload Favicon
@@ -63,9 +63,9 @@ class SettingAdminController extends Controller
                 File::makeDirectory($uploadDir, 0755, true);
             }
             $file = $request->file('favicon_file');
-            $fileName = 'favicon_' . time() . '.' . $file->getClientOriginalExtension();
+            $fileName = 'favicon_'.time().'.'.$file->getClientOriginalExtension();
             $file->move($uploadDir, $fileName);
-            $inputs['favicon_url'] = 'images/settings/' . $fileName;
+            $inputs['favicon_url'] = 'images/settings/'.$fileName;
         }
 
         foreach ($inputs as $key => $value) {

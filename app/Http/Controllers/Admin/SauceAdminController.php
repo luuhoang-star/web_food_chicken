@@ -49,7 +49,7 @@ class SauceAdminController extends Controller
                 'success' => true,
                 'message' => "Đã cập nhật vị sốt \"{$sauce->name}\" thành công!",
                 'sauce' => $sauce,
-                'formatted_price' => number_format((float) $sauce->price, 0, ',', '.') . ' ₫',
+                'formatted_price' => number_format((float) $sauce->price, 0, ',', '.').' ₫',
             ]);
         }
 
@@ -79,13 +79,13 @@ class SauceAdminController extends Controller
         if ($request->expectsJson() || $request->ajax()) {
             return response()->json([
                 'success' => true,
-                'message' => "Đã cập nhật giá topping \"{$topping->name}\" thành " . number_format((float) $topping->price, 0, ',', '.') . ' ₫!',
+                'message' => "Đã cập nhật giá topping \"{$topping->name}\" thành ".number_format((float) $topping->price, 0, ',', '.').' ₫!',
                 'topping' => $topping,
-                'formatted_price' => number_format((float) $topping->price, 0, ',', '.') . ' ₫',
+                'formatted_price' => number_format((float) $topping->price, 0, ',', '.').' ₫',
             ]);
         }
 
-        return back()->with('success', "Đã cập nhật topping \"{$topping->name}\" thành " . number_format((float) $topping->price, 0, ',', '.') . ' ₫!');
+        return back()->with('success', "Đã cập nhật topping \"{$topping->name}\" thành ".number_format((float) $topping->price, 0, ',', '.').' ₫!');
     }
 
     /**

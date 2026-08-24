@@ -22,13 +22,17 @@ class CouponAdminController extends Controller
         $activeCount = $coupons->filter(function ($c) {
             $isNotExpired = ! $c->expires_at || $c->expires_at->isFuture();
             $hasRemaining = ! $c->usage_limit || $c->used_count < $c->usage_limit;
+
             return $c->is_active && $isNotExpired && $hasRemaining;
         })->count();
 
         $totalUsedCount = $coupons->sum('used_count');
 
         $expiringCount = $coupons->filter(function ($c) {
-            if (! $c->expires_at) return false;
+            if (! $c->expires_at) {
+                return false;
+            }
+
             return $c->expires_at->isPast() || ($c->expires_at->diffInDays(Carbon::now()) <= 7 && $c->expires_at->isFuture());
         })->count();
 
@@ -96,7 +100,7 @@ class CouponAdminController extends Controller
         $coupon = Coupon::findOrFail($id);
 
         $request->validate([
-            'code' => ['required', 'string', 'max:50', 'unique:coupons,code,' . $coupon->id],
+            'code' => ['required', 'string', 'max:50', 'unique:coupons,code,'.$coupon->id],
             'name' => ['required', 'string', 'max:255'],
             'type' => ['required', 'string', 'in:fixed,percent'],
             'value' => ['required', 'numeric', 'min:1'],

@@ -50,7 +50,7 @@ class Coupon extends Model
         if ($this->min_order_amount > 0 && $subtotal < $this->min_order_amount) {
             return [
                 'valid' => false,
-                'message' => 'Đơn hàng chưa đạt mức tối thiểu ' . number_format($this->min_order_amount, 0, ',', '.') . 'đ để dùng mã này.',
+                'message' => 'Đơn hàng chưa đạt mức tối thiểu '.number_format($this->min_order_amount, 0, ',', '.').'đ để dùng mã này.',
             ];
         }
 
@@ -64,6 +64,7 @@ class Coupon extends Model
             if ($this->max_discount && $this->max_discount > 0 && $discount > $this->max_discount) {
                 return (float) $this->max_discount;
             }
+
             return (float) $discount;
         }
 

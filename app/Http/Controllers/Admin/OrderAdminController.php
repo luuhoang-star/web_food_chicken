@@ -128,7 +128,7 @@ class OrderAdminController extends Controller
             });
         }
 
-        $fileName = 'Don_Hang_GAO_' . date('Ymd_His') . '.csv';
+        $fileName = 'Don_Hang_GAO_'.date('Ymd_His').'.csv';
 
         $headers = [
             'Content-Type' => 'text/csv; charset=UTF-8',
@@ -142,7 +142,7 @@ class OrderAdminController extends Controller
             $handle = fopen('php://output', 'w');
 
             // Ghi UTF-8 BOM để Excel trên Windows hiển thị đúng font tiếng Việt có dấu
-            fputs($handle, "\xEF\xBB\xBF");
+            fwrite($handle, "\xEF\xBB\xBF");
 
             // Header hàng cột
             fputcsv($handle, [
@@ -166,13 +166,14 @@ class OrderAdminController extends Controller
             $query->chunk(100, function ($orders) use ($handle) {
                 foreach ($orders as $order) {
                     $itemsSummary = $order->items->map(function ($i) {
-                        $txt = $i->quantity . 'x ' . $i->product_name;
+                        $txt = $i->quantity.'x '.$i->product_name;
                         if ($i->sauce) {
-                            $txt .= ' (Sốt ' . $i->sauce . ')';
+                            $txt .= ' (Sốt '.$i->sauce.')';
                         }
                         if (! empty($i->toppings) && is_array($i->toppings)) {
-                            $txt .= ' [+Topping: ' . implode(', ', $i->toppings) . ']';
+                            $txt .= ' [+Topping: '.implode(', ', $i->toppings).']';
                         }
+
                         return $txt;
                     })->implode('; ');
 
@@ -274,7 +275,7 @@ class OrderAdminController extends Controller
                         'customer_name' => $order->customer_name,
                         'customer_phone' => $order->customer_phone,
                         'total_amount' => (float) $order->total_amount,
-                        'formatted_total' => number_format((float) $order->total_amount, 0, ',', '.') . 'đ',
+                        'formatted_total' => number_format((float) $order->total_amount, 0, ',', '.').'đ',
                         'items_summary' => $order->items->pluck('product_name')->implode(', '),
                         'created_at_human' => $order->created_at ? $order->created_at->diffForHumans() : 'Vừa xong',
                     ];

@@ -124,8 +124,8 @@ class TelegramService
         $msg .= "👤 <b>Khách hàng:</b> {$name}\n";
         $msg .= "📞 <b>SĐT:</b> <a href=\"tel:{$phone}\">{$phone}</a>\n";
         $msg .= "📍 <b>Địa chỉ:</b> {$address}, {$district}\n";
-        
-        $mapsUrl = 'https://www.google.com/maps/search/?api=1&query=' . urlencode($order->address . ', ' . $order->district . ', Hà Nội');
+
+        $mapsUrl = 'https://www.google.com/maps/search/?api=1&query='.urlencode($order->address.', '.$order->district.', Hà Nội');
         $msg .= "🗺️ <b>Chỉ đường:</b> <a href=\"{$mapsUrl}\">Mở Google Maps dẫn đường</a>\n";
 
         if ($note) {

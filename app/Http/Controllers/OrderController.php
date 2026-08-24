@@ -28,11 +28,11 @@ class OrderController extends Controller
                 'order' => $order,
             ], 201);
         } catch (Exception $e) {
-            Log::error('Order creation failed: ' . $e->getMessage());
+            Log::error('Order creation failed: '.$e->getMessage());
 
             return response()->json([
                 'success' => false,
-                'message' => 'Đã có lỗi xảy ra khi tạo đơn hàng: ' . $e->getMessage(),
+                'message' => 'Đã có lỗi xảy ra khi tạo đơn hàng: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -57,7 +57,7 @@ class OrderController extends Controller
         if (! $coupon) {
             return response()->json([
                 'success' => false,
-                'message' => 'Mã giảm giá "' . $code . '" không tồn tại.',
+                'message' => 'Mã giảm giá "'.$code.'" không tồn tại.',
             ], 404);
         }
 
@@ -76,8 +76,8 @@ class OrderController extends Controller
             'coupon_code' => $coupon->code,
             'coupon_name' => $coupon->name,
             'discount_amount' => $discount,
-            'formatted_discount' => '-' . number_format($discount, 0, ',', '.') . 'đ',
-            'message' => 'Áp dụng mã "' . $coupon->code . '" thành công! Bạn được giảm ' . number_format($discount, 0, ',', '.') . 'đ.',
+            'formatted_discount' => '-'.number_format($discount, 0, ',', '.').'đ',
+            'message' => 'Áp dụng mã "'.$coupon->code.'" thành công! Bạn được giảm '.number_format($discount, 0, ',', '.').'đ.',
         ]);
     }
 }

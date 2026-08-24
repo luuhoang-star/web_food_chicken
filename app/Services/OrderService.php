@@ -55,7 +55,7 @@ class OrderService
             $totalAmount = max(0, $subtotal + $shippingFee - $discount);
 
             // Unique Order Code: GAO-XXXXXX
-            $orderCode = 'GAO-' . strtoupper(substr(uniqid(), -6));
+            $orderCode = 'GAO-'.strtoupper(substr(uniqid(), -6));
 
             $order = Order::create([
                 'order_code' => $orderCode,
@@ -113,7 +113,7 @@ class OrderService
         try {
             $this->telegramService->sendOrderNotification($order);
         } catch (\Throwable $e) {
-            Log::error('Telegram notification error: ' . $e->getMessage());
+            Log::error('Telegram notification error: '.$e->getMessage());
         }
 
         return $order;
