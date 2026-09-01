@@ -65,36 +65,36 @@
 >
 
     <!-- 1. SIDEBAR (DESKTOP & TABLET - md:flex) -->
-    <aside class="hidden md:flex md:w-64 bg-gray-900 text-white flex-col shrink-0 border-r border-gray-800 z-30">
+    <aside class="hidden md:flex md:w-64 bg-[#0F172A] text-slate-200 flex-col shrink-0 border-r border-slate-800 z-30 select-none">
         
         <!-- Brand Header -->
-        <div class="h-16 px-5 flex items-center justify-between border-b border-gray-800">
+        <div class="h-16 px-5 flex items-center justify-between border-b border-slate-800/80 bg-slate-950/30">
             <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-2.5 group">
-                <div class="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white font-black text-sm shadow-sm">
+                <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center text-white font-black text-sm shadow-md shadow-red-500/20 group-hover:scale-105 transition-transform">
                     🍗
                 </div>
                 <div>
                     <span class="font-black text-base text-white tracking-tight block leading-none">GAO ADMIN</span>
-                    <span class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Quản Trị Toàn Diện</span>
+                    <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Quản Trị Nhà Hàng</span>
                 </div>
             </a>
             
-            <a href="{{ route('home') }}" target="_blank" class="text-xs text-gray-400 hover:text-white p-1.5 rounded-lg hover:bg-gray-800 transition-colors" title="Xem trang bán hàng">
+            <a href="{{ route('home') }}" target="_blank" class="text-xs text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors" title="Xem trang bán hàng">
                 🌐
             </a>
         </div>
 
         <!-- Navigation Links -->
-        <nav class="flex-1 px-3 py-4 space-y-1 text-sm font-semibold overflow-y-auto">
+        <nav class="flex-1 px-3 py-4 space-y-1 text-sm font-semibold overflow-y-auto scrollbar-none">
             
             <!-- NHÓM 1: VẬN HÀNH BÁN HÀNG -->
-            <div class="px-3 pb-1.5 pt-1 text-[10px] font-black uppercase tracking-wider text-gray-500">
+            <div class="px-3 pb-1.5 pt-1 text-[10px] font-black uppercase tracking-widest text-slate-400">
                 Vận Hành Bán Hàng
             </div>
 
             <a 
                 href="{{ route('admin.dashboard') }}" 
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.dashboard') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.dashboard') ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-red-500/20' : 'text-slate-400 hover:bg-slate-800/70 hover:text-white' }}"
             >
                 <span class="text-base">📊</span>
                 <span>Báo Cáo Tổng Quan</span>
@@ -102,18 +102,18 @@
 
             <a 
                 href="{{ route('admin.orders.index') }}" 
-                class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.orders.*') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
+                class="flex items-center justify-between px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.orders.*') ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-red-500/20' : 'text-slate-400 hover:bg-slate-800/70 hover:text-white' }}"
             >
                 <div class="flex items-center gap-3">
                     <span class="text-base">🛒</span>
                     <span>Quản Lý Đơn Hàng</span>
                 </div>
-                <span id="sidebar-pending-badge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white hidden">0</span>
+                <span id="sidebar-pending-badge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white shadow-xs hidden">0</span>
             </a>
 
             <a 
                 href="{{ route('admin.products.index') }}" 
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.products.*') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.products.*') ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-red-500/20' : 'text-slate-400 hover:bg-slate-800/70 hover:text-white' }}"
             >
                 <span class="text-base">🍗</span>
                 <span>Thực Đơn Món</span>
@@ -121,7 +121,7 @@
 
             <a 
                 href="{{ route('admin.categories.index') }}" 
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.categories.*') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.categories.*') ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-red-500/20' : 'text-slate-400 hover:bg-slate-800/70 hover:text-white' }}"
             >
                 <span class="text-base">📂</span>
                 <span>Danh Mục Món</span>
@@ -129,7 +129,7 @@
 
             <a 
                 href="{{ route('admin.combos.index') }}" 
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.combos.*') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.combos.*') ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-red-500/20' : 'text-slate-400 hover:bg-slate-800/70 hover:text-white' }}"
             >
                 <span class="text-base">📦</span>
                 <span>Gói Combo</span>
@@ -137,7 +137,7 @@
 
             <a 
                 href="{{ route('admin.sauces.index') }}" 
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.sauces.*') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.sauces.*') ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-red-500/20' : 'text-slate-400 hover:bg-slate-800/70 hover:text-white' }}"
             >
                 <span class="text-base">🥫</span>
                 <span>Vị Sốt & Topping</span>
@@ -145,20 +145,20 @@
 
             <a 
                 href="{{ route('admin.coupons.index') }}" 
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.coupons.*') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.coupons.*') ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-red-500/20' : 'text-slate-400 hover:bg-slate-800/70 hover:text-white' }}"
             >
                 <span class="text-base">🎟️</span>
                 <span>Mã Giảm Giá Voucher</span>
             </a>
 
             <!-- NHÓM 2: WEBSITE & CÀI ĐẶT -->
-            <div class="px-3 pb-1.5 pt-4 text-[10px] font-black uppercase tracking-wider text-gray-500 border-t border-gray-800/80 mt-3">
+            <div class="px-3 pb-1.5 pt-4 text-[10px] font-black uppercase tracking-widest text-slate-400 border-t border-slate-800/80 mt-3">
                 Giao Diện & Cài Đặt
             </div>
 
             <a 
                 href="{{ route('admin.content.index') }}" 
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.content.*') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.content.*') ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-red-500/20' : 'text-slate-400 hover:bg-slate-800/70 hover:text-white' }}"
             >
                 <span class="text-base">🎨</span>
                 <span>Giao Diện & Trang Chủ</span>
@@ -166,7 +166,7 @@
 
             <a 
                 href="{{ route('admin.settings.index') }}" 
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.settings.*') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.settings.*') ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-red-500/20' : 'text-slate-400 hover:bg-slate-800/70 hover:text-white' }}"
             >
                 <span class="text-base">⚙️</span>
                 <span>Cài Đặt Vận Hành Quán</span>
@@ -174,7 +174,7 @@
 
             <a 
                 href="{{ route('admin.profile.show') }}" 
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.profile.*') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.profile.*') ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-red-500/20' : 'text-slate-400 hover:bg-slate-800/70 hover:text-white' }}"
             >
                 <span class="text-base">🔐</span>
                 <span>Tài Khoản & Mật Khẩu</span>
@@ -182,21 +182,21 @@
         </nav>
 
         <!-- User Profile & Logout -->
-        <div class="p-3 border-t border-gray-800 bg-gray-950/50">
+        <div class="p-3 border-t border-slate-800/80 bg-slate-950/60">
             <div class="flex items-center justify-between px-2 py-1.5">
-                <a href="{{ route('admin.profile.show') }}" class="flex items-center gap-2.5 overflow-hidden hover:opacity-80 transition-opacity" title="Bấm để đổi mật khẩu và sửa thông tin">
-                    <div class="w-8 h-8 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center font-bold text-xs shrink-0">
+                <a href="{{ route('admin.profile.show') }}" class="flex items-center gap-2.5 overflow-hidden hover:opacity-90 transition-opacity" title="Bấm để đổi mật khẩu và sửa thông tin">
+                    <div class="w-8 h-8 rounded-xl bg-red-500/20 text-red-400 border border-red-500/30 flex items-center justify-center font-bold text-xs shrink-0 shadow-2xs">
                         👤
                     </div>
                     <div class="truncate">
                         <span class="text-xs font-bold text-white block truncate">{{ Auth::user()->name ?? 'Quản Trị Viên' }}</span>
-                        <span class="text-[10px] text-gray-500 block truncate">{{ Auth::user()->email ?? 'admin@gao.vn' }}</span>
+                        <span class="text-[10px] text-slate-500 block truncate font-mono">{{ Auth::user()->email ?? 'admin@gao.vn' }}</span>
                     </div>
                 </a>
 
                 <form action="{{ route('admin.logout') }}" method="POST" class="shrink-0">
                     @csrf
-                    <button type="submit" class="p-1.5 rounded-lg text-gray-400 hover:text-rose-400 hover:bg-gray-800 transition-colors" title="Đăng xuất">
+                    <button type="submit" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors cursor-pointer" title="Đăng xuất">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
                         </svg>
@@ -318,13 +318,13 @@
     <main class="flex-1 flex flex-col min-w-0 overflow-y-auto bg-gray-50">
         
         <!-- Topbar -->
-        <header class="h-16 bg-white border-b border-gray-200 px-4 sm:px-6 flex items-center justify-between shrink-0">
-            <div class="flex items-center gap-2.5">
+        <header class="h-16 bg-white border-b border-slate-200/80 px-4 sm:px-6 flex items-center justify-between shrink-0 shadow-2xs z-20 select-none">
+            <div class="flex items-center gap-3">
                 <!-- Nút Hamburger Mobile -->
                 <button 
                     type="button" 
                     @click="mobileNavOpen = true" 
-                    class="md:hidden p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-black transition-colors"
+                    class="md:hidden p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-black transition-colors cursor-pointer"
                     title="Mở menu quản trị"
                 >
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -332,10 +332,13 @@
                     </svg>
                 </button>
 
-                <h2 class="text-sm sm:text-base font-bold text-gray-900 truncate">@yield('page_title', 'Bảng Điều Khiển')</h2>
+                <h2 class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight truncate flex items-center gap-2">
+                    <span>📊</span>
+                    <span>@yield('page_title', 'Bảng Điều Khiển')</span>
+                </h2>
             </div>
             
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2.5">
                 <!-- Nút Tạm Dừng / Mở Bếp Nhận Đơn (1-Chạm AJAX Rõ Ràng & Chống Nhầm Lẫn) -->
                 @php
                     $storeStatus = \App\Models\SiteSetting::get('store_open_status', 'open');
@@ -344,11 +347,11 @@
                     type="button" 
                     id="topbar-store-toggle-btn"
                     onclick="toggleStoreOpenStatus(this)"
-                    class="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer {{ $storeStatus === 'open' ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300' : 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm animate-pulse' }}"
+                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black transition-all shadow-xs cursor-pointer {{ $storeStatus === 'open' ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300/80' : 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm animate-pulse' }}"
                     title="{{ $storeStatus === 'open' ? 'Quán đang MỞ nhận đơn. Click để Tạm dừng nhận đơn.' : 'Quán đang TẠM DỪNG nhận đơn. Click để Mở nhận đơn lại.' }}"
                     data-status="{{ $storeStatus }}"
                 >
-                    <span class="w-2 h-2 rounded-full {{ $storeStatus === 'open' ? 'bg-emerald-500' : 'bg-white' }}" id="topbar-store-dot"></span>
+                    <span class="w-2 h-2 rounded-full {{ $storeStatus === 'open' ? 'bg-emerald-500 ring-4 ring-emerald-400/20 animate-pulse' : 'bg-white' }}" id="topbar-store-dot"></span>
                     <span id="topbar-store-status-text">
                         {{ $storeStatus === 'open' ? 'Quán: ĐANG MỞ' : 'Quán: TẠM DỪNG' }}
                     </span>
@@ -358,12 +361,12 @@
                 </button>
 
                 <!-- Nút Bật/Tắt & Test Chuông Báo Đơn -->
-                <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-xl" id="sound-control-wrapper">
+                <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/60" id="sound-control-wrapper">
                     <button 
                         type="button" 
                         id="sound-toggle-btn" 
                         onclick="toggleAudioAlert()" 
-                        class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all bg-emerald-600 text-white shadow-xs"
+                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all bg-emerald-600 hover:bg-emerald-500 text-white shadow-2xs cursor-pointer"
                         title="Bấm để Bật / Tắt chuông khi có đơn mới"
                     >
                         <span id="sound-icon">🔔</span>
@@ -372,14 +375,14 @@
                     <button 
                         type="button" 
                         onclick="playOrderChime(true)" 
-                        class="p-1 rounded-lg hover:bg-gray-200 text-gray-600 text-xs font-bold transition-colors"
+                        class="p-1 px-1.5 rounded-lg hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors cursor-pointer"
                         title="Thử tiếng chuông"
                     >
                         ▶️
                     </button>
                 </div>
 
-                <a href="{{ route('home') }}" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-colors">
+                <a href="{{ route('home') }}" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors border border-slate-200/60 shadow-2xs">
                     <span>🍗 Web</span>
                     <span>↗</span>
                 </a>
