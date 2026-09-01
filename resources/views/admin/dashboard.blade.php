@@ -70,8 +70,10 @@
                     scales: {
                         y: {
                             beginAtZero: true,
+                            suggestedMax: isRevenue ? 500000 : 5,
                             grid: { color: '#f3f4f6' },
                             ticks: {
+                                precision: 0,
                                 font: { size: 10 },
                                 callback: function(value) {
                                     if (isRevenue) {
