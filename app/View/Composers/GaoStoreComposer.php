@@ -18,15 +18,36 @@ class GaoStoreComposer
      *
      * @var array<string, mixed>|null
      */
-    protected static ?array $cachedData = null;
+    protected static ?array $cachedStoreData = null;
 
     /**
-     * Bind global storefront data to all views efficiently.
+     * Cache admin data per request.
+     *
+     * @var array<string, mixed>|null
+     */
+    protected static ?array $cachedAdminData = null;
+
+    /**
+     * Bind global storefront data to views efficiently.
      */
     public function compose(View $view): void
     {
-        if (static::$cachedData === null) {
-            static::$cachedData = [
+        $viewName = $view->getName();
+
+        // Nếu là view Admin thì chỉ nạp cấu hình settings cần thiết, không query nặng menu/món ăn
+        if (str_starts_with($viewName, 'admin.') || str_starts_with($viewName, 'layouts.admin')) {
+            if (static::$cachedAdminData === null) {
+                static::$cachedAdminData = [
+                    'settings' => Schema::hasTable('site_settings') ? SiteSetting::allKeyed() : [],
+                ];
+            }
+            $view->with(static::$cachedAdminData);
+
+            return;
+        }
+
+        if (static::$cachedStoreData === null) {
+            static::$cachedStoreData = [
                 'settings' => Schema::hasTable('site_settings') ? SiteSetting::allKeyed() : [],
                 'categories' => Category::active()
                     ->withCount(['products' => fn ($query) => $query->available()])
@@ -46,11 +67,14 @@ class GaoStoreComposer
                     ->get(),
                 'allProducts' => Product::with(['category', 'sauce', 'sauces'])
                     ->available()
+                    ->withSum(['orderItems as sold_count' => function ($q) {
+                        $q->whereHas('order', fn ($o) => $o->where('order_status', '!=', 'cancelled'));
+                    }], 'quantity')
                     ->orderBy('order')
                     ->get(),
             ];
         }
 
-        $view->with(static::$cachedData);
+        $view->with(static::$cachedStoreData);
     }
 }

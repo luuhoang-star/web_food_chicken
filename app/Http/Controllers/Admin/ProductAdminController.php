@@ -9,6 +9,7 @@ use App\Models\Sauce;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -23,10 +24,7 @@ class ProductAdminController extends Controller
         $categoryId = $request->input('category_id', 'all');
         $status = $request->input('status', 'all');
         $sort = $request->input('sort', 'latest');
-        $perPage = (int) $request->input('per_page', 15);
-        if (! in_array($perPage, [15, 30, 50])) {
-            $perPage = 15;
-        }
+        $perPage = in_array((int) $request->input('per_page'), [15, 30, 50]) ? (int) $request->input('per_page') : 15;
         $search = trim((string) $request->input('q', ''));
 
         $query = Product::with('category', 'sauce')
@@ -66,12 +64,9 @@ class ProductAdminController extends Controller
             $query->orderBy('order', 'asc')->orderBy('id', 'desc');
         }
 
-        $products = $query->paginate($perPage)->withQueryString();
-        $categories = Category::active()->ordered()->get();
-
         return view('admin.products.index', [
-            'products' => $products,
-            'categories' => $categories,
+            'products' => $query->paginate($perPage)->withQueryString(),
+            'categories' => Category::ordered()->get(),
             'selectedCategory' => $categoryId,
             'selectedStatus' => $status,
             'selectedSort' => $sort,
@@ -85,12 +80,9 @@ class ProductAdminController extends Controller
      */
     public function create(): View
     {
-        $categories = Category::active()->ordered()->get();
-        $sauces = Sauce::ordered()->get();
-
         return view('admin.products.create', [
-            'categories' => $categories,
-            'sauces' => $sauces,
+            'categories' => Category::ordered()->get(),
+            'sauces' => Sauce::ordered()->get(),
         ]);
     }
 
@@ -99,66 +91,20 @@ class ProductAdminController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'category_id' => ['required', 'exists:categories,id'],
-            'sauce_id' => ['nullable', 'exists:sauces,id'],
-            'sauce_selection' => ['required', 'string', 'in:none,fixed,required'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'original_price' => ['nullable', 'numeric', 'min:0'],
-            'tag' => ['nullable', 'string', 'max:50'],
-            'subtag' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'image_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
-            'image_url' => ['nullable', 'string', 'max:500'],
-            'is_hot' => ['nullable', 'boolean'],
-            'is_available' => ['nullable', 'boolean'],
-            'order' => ['nullable', 'integer'],
-        ], [
-            'name.required' => 'Vui lòng nhập tên món ăn.',
-            'category_id.required' => 'Vui lòng chọn danh mục món.',
-            'category_id.exists' => 'Danh mục đã chọn không hợp lệ.',
-            'price.required' => 'Vui lòng nhập giá bán.',
-            'price.numeric' => 'Giá bán phải là số.',
-            'price.min' => 'Giá bán không được âm.',
-            'image_file.image' => 'File tải lên phải là hình ảnh (jpg, png, webp).',
-            'image_file.max' => 'Dung lượng ảnh tối đa là 5MB.',
-        ]);
+        $validated = $this->validateProduct($request);
 
-        // Xử lý tạo slug duy nhất
-        $baseSlug = Str::slug($validated['name']);
-        $slug = $baseSlug;
-        $counter = 1;
-        while (Product::where('slug', $slug)->exists()) {
-            $slug = "{$baseSlug}-".Str::random(4);
-            $counter++;
-            if ($counter > 10) {
-                $slug = "{$baseSlug}-".time();
-                break;
-            }
-        }
-
-        // Xử lý ảnh đại diện
-        $imagePath = 'images/placeholder.jpg';
-        if ($request->hasFile('image_file')) {
-            $uploadDir = public_path('images/products');
-            if (! File::isDirectory($uploadDir)) {
-                File::makeDirectory($uploadDir, 0755, true);
-            }
-            $file = $request->file('image_file');
-            $fileName = 'prod_'.time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
-            $file->move($uploadDir, $fileName);
-            $imagePath = 'images/products/'.$fileName;
-        } elseif ($request->filled('image_url')) {
-            $imagePath = trim((string) $request->input('image_url'));
-        }
+        $imagePath = $this->handleImageUpload(
+            $request->file('image_file'),
+            $request->input('image_url') ?: $request->input('image'),
+            'images/placeholder.jpg'
+        );
 
         $product = Product::create([
             'name' => $validated['name'],
-            'slug' => $slug,
+            'slug' => $this->generateUniqueSlug($validated['name']),
             'category_id' => $validated['category_id'],
-            'sauce_id' => $validated['sauce_id'] ?: null,
-            'sauce_selection' => $validated['sauce_selection'],
+            'sauce_id' => $request->filled('sauce_id') ? $request->input('sauce_id') : null,
+            'sauce_selection' => $request->input('sauce_selection', 'none'),
             'price' => $validated['price'],
             'original_price' => $request->filled('original_price') ? $request->input('original_price') : null,
             'tag' => $request->filled('tag') ? $request->input('tag') : null,
@@ -181,14 +127,10 @@ class ProductAdminController extends Controller
      */
     public function edit(int $id): View
     {
-        $product = Product::findOrFail($id);
-        $categories = Category::active()->ordered()->get();
-        $sauces = Sauce::ordered()->get();
-
         return view('admin.products.edit', [
-            'product' => $product,
-            'categories' => $categories,
-            'sauces' => $sauces,
+            'product' => Product::findOrFail($id),
+            'categories' => Category::ordered()->get(),
+            'sauces' => Sauce::ordered()->get(),
         ]);
     }
 
@@ -198,62 +140,29 @@ class ProductAdminController extends Controller
     public function update(Request $request, int $id): RedirectResponse
     {
         $product = Product::findOrFail($id);
+        $validated = $this->validateProduct($request);
 
-        $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'category_id' => ['required', 'exists:categories,id'],
-            'sauce_id' => ['nullable', 'exists:sauces,id'],
-            'sauce_selection' => ['required', 'string', 'in:none,fixed,required'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'original_price' => ['nullable', 'numeric', 'min:0'],
-            'tag' => ['nullable', 'string', 'max:50'],
-            'subtag' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable', 'string'],
-            'image_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
-            'image_url' => ['nullable', 'string', 'max:500'],
-            'is_hot' => ['nullable', 'boolean'],
-            'is_available' => ['nullable', 'boolean'],
-            'order' => ['nullable', 'integer'],
-        ], [
-            'name.required' => 'Vui lòng nhập tên món ăn.',
-            'category_id.required' => 'Vui lòng chọn danh mục món.',
-            'price.required' => 'Vui lòng nhập giá bán.',
-            'price.numeric' => 'Giá bán phải là số.',
-            'price.min' => 'Giá bán không được âm.',
-            'image_file.image' => 'File tải lên phải là hình ảnh (jpg, png, webp).',
-            'image_file.max' => 'Dung lượng ảnh tối đa là 5MB.',
-        ]);
+        $imagePath = $this->handleImageUpload(
+            $request->file('image_file'),
+            $request->input('image_url') ?: $request->input('image'),
+            $product->image
+        );
 
-        $updateData = [
+        $product->update([
             'name' => $validated['name'],
             'category_id' => $validated['category_id'],
-            'sauce_id' => $validated['sauce_id'] ?: null,
-            'sauce_selection' => $validated['sauce_selection'],
+            'sauce_id' => $request->has('sauce_id') ? ($request->input('sauce_id') ?: null) : $product->sauce_id,
+            'sauce_selection' => $request->input('sauce_selection', $product->sauce_selection ?? 'none'),
             'price' => $validated['price'],
             'original_price' => $request->filled('original_price') ? $request->input('original_price') : null,
             'tag' => $request->filled('tag') ? $request->input('tag') : null,
             'subtag' => $request->filled('subtag') ? $request->input('subtag') : null,
             'description' => $request->filled('description') ? $request->input('description') : null,
+            'image' => $imagePath,
             'is_hot' => (bool) $request->boolean('is_hot'),
             'is_available' => (bool) $request->boolean('is_available'),
             'order' => $request->filled('order') ? (int) $request->input('order') : $product->order,
-        ];
-
-        // Xử lý nếu có tải ảnh mới lên hoặc nhập URL mới
-        if ($request->hasFile('image_file')) {
-            $uploadDir = public_path('images/products');
-            if (! File::isDirectory($uploadDir)) {
-                File::makeDirectory($uploadDir, 0755, true);
-            }
-            $file = $request->file('image_file');
-            $fileName = 'prod_'.time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
-            $file->move($uploadDir, $fileName);
-            $updateData['image'] = 'images/products/'.$fileName;
-        } elseif ($request->filled('image_url') && $request->input('image_url') !== $product->image) {
-            $updateData['image'] = trim((string) $request->input('image_url'));
-        }
-
-        $product->update($updateData);
+        ]);
 
         return redirect()->route('admin.products.index')
             ->with('success', "Đã cập nhật thông tin món \"{$product->name}\" thành công!");
@@ -273,7 +182,7 @@ class ProductAdminController extends Controller
     }
 
     /**
-     * Cập nhật nhanh giá tiền của món ăn (Tự lưu qua Enter / Blur).
+     * Cập nhật nhanh giá tiền của món ăn.
      */
     public function updatePrice(Request $request, int $id): JsonResponse|RedirectResponse
     {
@@ -329,7 +238,7 @@ class ProductAdminController extends Controller
     }
 
     /**
-     * Thao tác hàng loạt (Bulk Actions: Mở bán, Hết món, Xoá).
+     * Thao tác hàng loạt (Bulk Actions).
      */
     public function bulkAction(Request $request): RedirectResponse
     {
@@ -355,5 +264,82 @@ class ProductAdminController extends Controller
         }
 
         return back()->with('success', $message);
+    }
+
+    /**
+     * Validate dữ liệu form món ăn.
+     */
+    private function validateProduct(Request $request): array
+    {
+        return $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'category_id' => ['required', 'exists:categories,id'],
+            'sauce_id' => ['nullable', 'exists:sauces,id'],
+            'sauce_selection' => ['nullable', 'string', 'in:none,fixed,required'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'original_price' => ['nullable', 'numeric', 'min:0'],
+            'tag' => ['nullable', 'string', 'max:50'],
+            'subtag' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'image_file' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:5120'],
+            'image_url' => ['nullable', 'string', 'max:500'],
+            'image' => ['nullable', 'string', 'max:500'],
+            'is_hot' => ['nullable', 'boolean'],
+            'is_available' => ['nullable', 'boolean'],
+            'order' => ['nullable', 'integer'],
+        ], [
+            'name.required' => 'Vui lòng nhập tên món ăn.',
+            'category_id.required' => 'Vui lòng chọn danh mục món.',
+            'category_id.exists' => 'Danh mục đã chọn không hợp lệ.',
+            'price.required' => 'Vui lòng nhập giá bán.',
+            'price.numeric' => 'Giá bán phải là số.',
+            'price.min' => 'Giá bán không được âm.',
+            'image_file.image' => 'File tải lên phải là hình ảnh (jpg, png, webp).',
+            'image_file.max' => 'Dung lượng ảnh tối đa là 5MB.',
+        ]);
+    }
+
+    /**
+     * Xử lý tải ảnh lên hoặc giữ URL cũ/fallback.
+     */
+    private function handleImageUpload(?UploadedFile $file, ?string $url, string $fallback): string
+    {
+        if ($file) {
+            $uploadDir = public_path('images/products');
+            if (! File::isDirectory($uploadDir)) {
+                File::makeDirectory($uploadDir, 0755, true);
+            }
+            $fileName = 'prod_'.time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
+            $file->move($uploadDir, $fileName);
+
+            return 'images/products/'.$fileName;
+        }
+
+        if (! empty($url)) {
+            return trim($url);
+        }
+
+        return $fallback;
+    }
+
+    /**
+     * Tạo slug duy nhất cho món ăn.
+     */
+    private function generateUniqueSlug(string $name): string
+    {
+        $baseSlug = Str::slug($name);
+        $slug = $baseSlug;
+        $counter = 1;
+
+        while (Product::where('slug', $slug)->exists()) {
+            $slug = "{$baseSlug}-".Str::random(4);
+            $counter++;
+            if ($counter > 10) {
+                $slug = "{$baseSlug}-".time();
+                break;
+            }
+        }
+
+        return $slug;
     }
 }

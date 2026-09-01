@@ -64,6 +64,43 @@
             btnElem.style.opacity = '1';
             this.showToast('Lỗi kết nối máy chủ');
         }
+    },
+
+    async savePrice(comboId, newPrice, originalPrice, inputElem) {
+        const val = parseFloat(newPrice);
+        if (isNaN(val) || val < 0) {
+            this.showToast('Giá bán không hợp lệ');
+            return;
+        }
+
+        try {
+            inputElem.classList.add('bg-amber-50');
+            const res = await fetch(`/admin/combos/${comboId}/price`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': this.csrfToken
+                },
+                body: JSON.stringify({ price: val })
+            });
+
+            const data = await res.json();
+            inputElem.classList.remove('bg-amber-50');
+
+            if (res.ok && data.success) {
+                inputElem.classList.add('border-emerald-500', 'bg-emerald-50');
+                setTimeout(() => {
+                    inputElem.classList.remove('border-emerald-500', 'bg-emerald-50');
+                }, 1200);
+                this.showToast(data.message || 'Đã lưu giá mới!');
+            } else {
+                this.showToast(data.message || 'Lỗi khi lưu giá');
+            }
+        } catch (e) {
+            inputElem.classList.remove('bg-amber-50');
+            this.showToast('Lỗi kết nối máy chủ');
+        }
     }
 }" @click="activeMenuId = null">
 
@@ -246,25 +283,35 @@
                                 </div>
                             </td>
 
-                            <!-- 3. Giá bán & Giá gốc & Số tiền tiết kiệm cụ thể -->
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <!-- 3. Giá bán (Sửa trực tiếp tự lưu qua Enter/Blur) -->
+                            <td class="px-4 py-3 whitespace-nowrap" @click.stop>
                                 <div class="space-y-0.5">
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="font-black text-gray-900 text-xs sm:text-sm">
-                                            {{ number_format((float) $combo->price, 0, ',', '.') }} ₫
-                                        </span>
+                                    <div class="relative inline-flex items-center">
+                                        <input 
+                                            type="number" 
+                                            value="{{ (int) $combo->price }}" 
+                                            step="1000" 
+                                            min="0"
+                                            @keydown.enter.prevent="$event.target.blur()"
+                                            @blur="savePrice({{ $combo->id }}, $event.target.value, {{ (int) $combo->price }}, $event.target)"
+                                            class="w-28 pl-2.5 pr-6 py-1 rounded-lg bg-gray-50 hover:bg-white focus:bg-white border border-gray-200 focus:border-red-500 text-xs font-black text-gray-900 focus:text-red-600 outline-none text-right transition-all font-mono"
+                                            title="Sửa giá combo và ấn Enter hoặc click ra ngoài để tự lưu"
+                                        >
+                                        <span class="absolute right-2 text-xs font-bold text-gray-400 pointer-events-none">₫</span>
+                                    </div>
+
+                                    <div class="flex items-center justify-end gap-1.5">
                                         @if($combo->original_price && $combo->original_price > $combo->price)
-                                            <span class="text-[10px] text-gray-400 line-through font-medium">
+                                            <span class="text-[10px] text-gray-400 line-through font-medium font-mono">
                                                 {{ number_format((float) $combo->original_price, 0, ',', '.') }} ₫
                                             </span>
                                         @endif
+                                        @if($savingAmount > 0)
+                                            <span class="text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-200/60">
+                                                -{{ number_format((float) $savingAmount, 0, ',', '.') }}₫
+                                            </span>
+                                        @endif
                                     </div>
-
-                                    @if($savingAmount > 0)
-                                        <div class="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
-                                            <span>Tiết kiệm {{ number_format((float) $savingAmount, 0, ',', '.') }} ₫</span>
-                                        </div>
-                                    @endif
                                 </div>
                             </td>
 

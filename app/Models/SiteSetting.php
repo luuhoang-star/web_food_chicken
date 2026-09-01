@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class SiteSetting extends Model
 {
@@ -18,22 +19,40 @@ class SiteSetting extends Model
     ];
 
     /**
-     * Get a setting value by key with fallback.
+     * Tự động xóa cache khi có bất kỳ cấu hình nào thay đổi.
      */
-    public static function get(string $key, mixed $default = null): mixed
+    protected static function booted(): void
     {
-        $val = static::where('key', $key)->value('value');
+        static::saved(function () {
+            Cache::forget('site_settings_all_keyed');
+        });
 
-        return ($val !== null && $val !== '') ? $val : $default;
+        static::deleted(function () {
+            Cache::forget('site_settings_all_keyed');
+        });
     }
 
     /**
-     * Get all settings as key-value array.
+     * Get a setting value by key with fallback (Lấy siêu tốc từ Cache).
+     */
+    public static function get(string $key, mixed $default = null): mixed
+    {
+        $all = static::allKeyed();
+
+        return (array_key_exists($key, $all) && $all[$key] !== null && $all[$key] !== '')
+            ? $all[$key]
+            : $default;
+    }
+
+    /**
+     * Get all settings as key-value array with permanent caching.
      *
      * @return array<string, mixed>
      */
     public static function allKeyed(): array
     {
-        return static::pluck('value', 'key')->toArray();
+        return Cache::rememberForever('site_settings_all_keyed', function () {
+            return static::pluck('value', 'key')->toArray();
+        });
     }
 }

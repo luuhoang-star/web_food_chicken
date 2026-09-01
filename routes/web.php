@@ -57,7 +57,7 @@ Route::match(['get', 'post'], '/webhook/deploy', [DeployWebhookController::class
 // Admin Guest Routes
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login');
-    Route::post('/login', [AdminAuthController::class, 'login'])->name('login.submit');
+    Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:5,1')->name('login.submit');
     Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
 
     // Admin Authenticated Routes
@@ -96,11 +96,17 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::put('/combos/{id}', [ComboAdminController::class, 'update'])->name('combos.update');
         Route::delete('/combos/{id}', [ComboAdminController::class, 'destroy'])->name('combos.destroy');
         Route::patch('/combos/{id}/toggle', [ComboAdminController::class, 'toggle'])->name('combos.toggle');
+        Route::patch('/combos/{id}/price', [ComboAdminController::class, 'updatePrice'])->name('combos.update-price');
 
         // 5. Quản lý Vị sốt & Topping
         Route::get('/sauces', [SauceAdminController::class, 'index'])->name('sauces.index');
+        Route::post('/sauces', [SauceAdminController::class, 'storeSauce'])->name('sauces.store');
         Route::patch('/sauces/{id}', [SauceAdminController::class, 'updateSauce'])->name('sauces.update');
+        Route::delete('/sauces/{id}', [SauceAdminController::class, 'destroySauce'])->name('sauces.destroy');
+
+        Route::post('/toppings', [SauceAdminController::class, 'storeTopping'])->name('toppings.store');
         Route::patch('/toppings/{id}', [SauceAdminController::class, 'updateTopping'])->name('toppings.update');
+        Route::delete('/toppings/{id}', [SauceAdminController::class, 'destroyTopping'])->name('toppings.destroy');
         Route::patch('/toppings/{id}/toggle', [SauceAdminController::class, 'toggleTopping'])->name('toppings.toggle');
 
         // 6. Quản lý Mã giảm giá & Voucher (Coupons CRUD)

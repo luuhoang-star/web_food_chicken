@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\SiteSetting;
 use App\Services\TelegramService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\File;
@@ -75,13 +76,15 @@ class SettingAdminController extends Controller
             );
         }
 
-        return back()->with('success', 'Đã lưu cấu hình cài đặt hệ thống thành công!');
+        $redirectTo = $request->input('_redirect_to', url()->previous());
+
+        return redirect($redirectTo)->with('success', 'Đã lưu cấu hình cài đặt thành công!');
     }
 
     /**
      * Bật / Tắt nhanh trạng thái Nhận đơn của Bếp (Đang mở / Tạm dừng nhận đơn).
      */
-    public function toggleStoreStatus(): RedirectResponse
+    public function toggleStoreStatus(Request $request): JsonResponse|RedirectResponse
     {
         $currentStatus = SiteSetting::get('store_open_status', 'open');
         $newStatus = ($currentStatus === 'open') ? 'paused' : 'open';
@@ -94,6 +97,15 @@ class SettingAdminController extends Controller
         $msg = ($newStatus === 'open')
             ? '🟢 Bếp đã MỞ LẠI - Website đang nhận đơn bình thường!'
             : '🔴 Bếp đã TẠM DỪNG NHẬN ĐƠN - Website tạm thời chặn khách đặt món để bạn xử lý đơn hiện tại!';
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'store_open_status' => $newStatus,
+                'is_open' => $newStatus === 'open',
+                'message' => $msg,
+            ]);
+        }
 
         return back()->with('success', $msg);
     }

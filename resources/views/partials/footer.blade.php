@@ -64,7 +64,7 @@
                     </li>
                     <li class="flex items-center gap-2">
                         <span class="text-red-500">⏰</span>
-                        <span>{{ $settings['opening_hours'] ?? 'Giờ nhận đơn: 09:30 – 22:00 hàng ngày' }}</span>
+                        <span>Giờ nhận đơn: {{ $settings['kitchen_open_time'] ?? '09:30' }} – {{ $settings['kitchen_close_time'] ?? '22:30' }} hàng ngày</span>
                     </li>
                 </ul>
             </div>

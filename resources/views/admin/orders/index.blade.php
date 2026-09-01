@@ -58,6 +58,24 @@
             setTimeout(() => { this.copyToast = ''; }, 3500);
         },
 
+        openDrawer(order) {
+            if (!order) return;
+            this.selectedDrawerOrder = order;
+        },
+
+        openPrintModal(order) {
+            if (!order) return;
+            this.activePrintOrder = order;
+        },
+
+        printDirect(order) {
+            if (!order) return;
+            this.activePrintOrder = order;
+            setTimeout(() => {
+                window.print();
+            }, 100);
+        },
+
         copyShipperInfo(order) {
             if (!order) return;
             const storeAddr = '{{ $settings['store_address'] ?? 'Quán GAO - Gà Sốt & Cơm Hà Nội' }}';
@@ -444,50 +462,59 @@
                                 </span>
                             </td>
 
-                            <!-- 7. THAO TÁC: 1 PRIMARY CTA DUY NHẤT (AJAX 1-CHẠM) -->
+                            <!-- 7. THAO TÁC: 1 PRIMARY CTA & NÚT IN NHANH (AJAX 1-CHẠM) -->
                             <td class="px-4 py-3 whitespace-nowrap text-right" @click.stop>
-                                
-                                <template x-if="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'pending'">
+                                <div class="inline-flex items-center gap-1.5 justify-end">
                                     <button 
                                         type="button" 
-                                        @click="updateOrderStatus({{ $order->id }}, 'preparing', '{{ $order->order_code }}')"
-                                        class="px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black text-xs shadow-xs transition-transform active:scale-95 cursor-pointer"
-                                        title="Xác nhận và bắt đầu làm món"
+                                        @click="openPrintModal({{ json_encode($orderPayload) }})"
+                                        class="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors cursor-pointer"
+                                        title="In phiếu bếp K80"
                                     >
-                                        🍳 Nhận & Làm món
+                                        🖨️
                                     </button>
-                                </template>
 
-                                <template x-if="['confirmed', 'preparing', 'processing'].includes(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}')">
-                                    <button 
-                                        type="button" 
-                                        @click="updateOrderStatus({{ $order->id }}, 'delivering', '{{ $order->order_code }}')"
-                                        class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-xs transition-transform active:scale-95 cursor-pointer"
-                                        title="Đóng gói và đi giao"
-                                    >
-                                        📦 Đóng gói & Giao
-                                    </button>
-                                </template>
+                                    <template x-if="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'pending'">
+                                        <button 
+                                            type="button" 
+                                            @click="updateOrderStatus({{ $order->id }}, 'preparing', '{{ $order->order_code }}')"
+                                            class="px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black text-xs shadow-xs transition-transform active:scale-95 cursor-pointer"
+                                            title="Xác nhận và bắt đầu làm món"
+                                        >
+                                            🍳 Nhận & Làm món
+                                        </button>
+                                    </template>
 
-                                <template x-if="['delivering', 'shipping'].includes(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}')">
-                                    <button 
-                                        type="button" 
-                                        @click="updateOrderStatus({{ $order->id }}, 'completed', '{{ $order->order_code }}')"
-                                        class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-xs transition-transform active:scale-95 cursor-pointer"
-                                        title="Xác nhận đã giao tận tay khách và thu tiền"
-                                    >
-                                        ✅ Giao xong
-                                    </button>
-                                </template>
+                                    <template x-if="['confirmed', 'preparing', 'processing'].includes(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}')">
+                                        <button 
+                                            type="button" 
+                                            @click="updateOrderStatus({{ $order->id }}, 'delivering', '{{ $order->order_code }}')"
+                                            class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-xs transition-transform active:scale-95 cursor-pointer"
+                                            title="Đóng gói và đi giao"
+                                        >
+                                            📦 Đóng gói & Giao
+                                        </button>
+                                    </template>
 
-                                <template x-if="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'completed'">
-                                    <span class="text-xs font-bold text-emerald-700 inline-block py-1">✓ Hoàn tất</span>
-                                </template>
+                                    <template x-if="['delivering', 'shipping'].includes(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}')">
+                                        <button 
+                                            type="button" 
+                                            @click="updateOrderStatus({{ $order->id }}, 'completed', '{{ $order->order_code }}')"
+                                            class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-xs transition-transform active:scale-95 cursor-pointer"
+                                            title="Xác nhận đã giao tận tay khách và thu tiền"
+                                        >
+                                            ✅ Giao xong
+                                        </button>
+                                    </template>
 
-                                <template x-if="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'cancelled'">
-                                    <span class="text-xs font-bold text-gray-400 inline-block py-1">✕ Đã huỷ</span>
-                                </template>
+                                    <template x-if="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'completed'">
+                                        <span class="text-xs font-bold text-emerald-700 inline-block py-1">✓ Hoàn tất</span>
+                                    </template>
 
+                                    <template x-if="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'cancelled'">
+                                        <span class="text-xs font-bold text-gray-400 inline-block py-1">✕ Đã huỷ</span>
+                                    </template>
+                                </div>
                             </td>
 
                         </tr>
@@ -856,4 +883,40 @@
     </div>
 
 </div>
+
+<style>
+@media print {
+    /* Ẩn toàn bộ giao diện web khi in */
+    body * {
+        visibility: hidden !important;
+    }
+    
+    /* Chỉ hiển thị duy nhất khung phiếu in K80 */
+    #printable-receipt, #printable-receipt * {
+        visibility: visible !important;
+    }
+    
+    #printable-receipt {
+        position: fixed !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 78mm !important;
+        max-width: 78mm !important;
+        margin: 0 !important;
+        padding: 4mm !important;
+        border: none !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        color: #000 !important;
+        font-family: monospace, sans-serif !important;
+        font-size: 12px !important;
+        line-height: 1.3 !important;
+    }
+
+    @page {
+        size: 80mm auto;
+        margin: 0;
+    }
+}
+</style>
 @endsection

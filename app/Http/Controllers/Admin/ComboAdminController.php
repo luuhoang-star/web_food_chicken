@@ -9,6 +9,7 @@ use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
@@ -54,10 +55,8 @@ class ComboAdminController extends Controller
             $query->ordered();
         }
 
-        $combos = $query->get();
-
         return view('admin.combos.index', [
-            'combos' => $combos,
+            'combos' => $query->get(),
             'search' => $search,
             'selectedStatus' => $status,
             'selectedSort' => $sort,
@@ -69,10 +68,8 @@ class ComboAdminController extends Controller
      */
     public function create(): View
     {
-        $products = Product::available()->ordered()->get();
-
         return view('admin.combos.create', [
-            'products' => $products,
+            'products' => Product::ordered()->get(),
         ]);
     }
 
@@ -81,85 +78,38 @@ class ComboAdminController extends Controller
      */
     public function store(Request $request): RedirectResponse
     {
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'original_price' => ['nullable', 'numeric', 'min:0'],
-            'tag' => ['nullable', 'string', 'max:50'],
-            'subtag' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'image' => ['nullable', 'string', 'max:1000'],
-            'image_file' => ['nullable', 'image', 'max:5120'],
-            'order' => ['nullable', 'integer', 'min:1'],
-            'items' => ['nullable', 'array'],
-            'items.*.item_name' => ['required', 'string', 'max:255'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'items.*.product_id' => ['nullable', 'integer'],
-        ], [
-            'name.required' => 'Vui lòng nhập tên combo.',
-            'price.required' => 'Vui lòng nhập giá bán combo.',
-        ]);
+        $validated = $this->validateCombo($request);
 
-        $imagePath = $request->input('image');
+        $imagePath = $this->handleImageUpload(
+            $request->file('image_file'),
+            $request->input('image'),
+            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=700&q=80'
+        );
 
-        // Xử lý upload ảnh nếu có
-        if ($request->hasFile('image_file')) {
-            $uploadDir = public_path('images/combos');
-            if (! File::isDirectory($uploadDir)) {
-                File::makeDirectory($uploadDir, 0755, true);
-            }
-            $file = $request->file('image_file');
-            $fileName = 'combo_'.time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
-            $file->move($uploadDir, $fileName);
-            $imagePath = 'images/combos/'.$fileName;
-        }
+        $slug = $this->generateUniqueSlug($validated['name']);
 
-        if (empty($imagePath)) {
-            $imagePath = 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=700&q=80';
-        }
-
-        $baseSlug = Str::slug($request->input('name'));
-        $slug = $baseSlug;
-        $counter = 1;
-        while (Combo::where('slug', $slug)->exists()) {
-            $slug = "{$baseSlug}-{$counter}";
-            $counter++;
-        }
-
-        DB::transaction(function () use ($request, $slug, $imagePath) {
+        DB::transaction(function () use ($request, $validated, $slug, $imagePath) {
             $combo = Combo::create([
-                'name' => $request->input('name'),
+                'name' => $validated['name'],
                 'slug' => $slug,
                 'subtag' => $request->input('subtag') ?: '🍱 Combo siêu tiết kiệm',
                 'description' => $request->input('description'),
-                'price' => $request->input('price'),
+                'price' => $validated['price'],
                 'original_price' => $request->input('original_price'),
                 'image' => $imagePath,
                 'tag' => $request->input('tag') ?: 'TIẾT KIỆM',
                 'rating' => 5.0,
                 'review_count' => rand(80, 250),
-                'is_hot' => $request->has('is_hot') ? (bool) $request->boolean('is_hot') : false,
+                'is_hot' => (bool) $request->boolean('is_hot'),
                 'is_active' => $request->has('is_active') ? (bool) $request->boolean('is_active') : true,
                 'order' => $request->filled('order') ? (int) $request->input('order') : ((Combo::max('order') ?? 0) + 1),
             ]);
 
-            if ($request->has('items') && is_array($request->input('items'))) {
-                $orderIndex = 1;
-                foreach ($request->input('items') as $item) {
-                    if (! empty($item['item_name'])) {
-                        ComboItem::create([
-                            'combo_id' => $combo->id,
-                            'product_id' => ! empty($item['product_id']) ? (int) $item['product_id'] : null,
-                            'item_name' => $item['item_name'],
-                            'quantity' => (int) ($item['quantity'] ?? 1),
-                            'order' => $orderIndex++,
-                        ]);
-                    }
-                }
-            }
+            $this->syncComboItems($combo, $request->input('items', []));
         });
 
-        return redirect()->route('admin.combos.index')->with('success', "Đã tạo combo \"{$request->input('name')}\" thành công!");
+        return redirect()->route('admin.combos.index')
+            ->with('success', "Đã tạo combo \"{$validated['name']}\" thành công!");
     }
 
     /**
@@ -167,12 +117,9 @@ class ComboAdminController extends Controller
      */
     public function edit(int $id): View
     {
-        $combo = Combo::with('items')->findOrFail($id);
-        $products = Product::available()->ordered()->get();
-
         return view('admin.combos.edit', [
-            'combo' => $combo,
-            'products' => $products,
+            'combo' => Combo::with('items')->findOrFail($id),
+            'products' => Product::ordered()->get(),
         ]);
     }
 
@@ -182,76 +129,37 @@ class ComboAdminController extends Controller
     public function update(Request $request, int $id): RedirectResponse
     {
         $combo = Combo::findOrFail($id);
+        $validated = $this->validateCombo($request);
 
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'price' => ['required', 'numeric', 'min:0'],
-            'original_price' => ['nullable', 'numeric', 'min:0'],
-            'tag' => ['nullable', 'string', 'max:50'],
-            'subtag' => ['nullable', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:1000'],
-            'image' => ['nullable', 'string', 'max:1000'],
-            'image_file' => ['nullable', 'image', 'max:5120'],
-            'order' => ['nullable', 'integer', 'min:1'],
-            'items' => ['nullable', 'array'],
-            'items.*.item_name' => ['required', 'string', 'max:255'],
-            'items.*.quantity' => ['required', 'integer', 'min:1'],
-            'items.*.product_id' => ['nullable', 'integer'],
-        ]);
+        $imagePath = $this->handleImageUpload(
+            $request->file('image_file'),
+            $request->input('image'),
+            $combo->image
+        );
 
-        $imagePath = $combo->image;
-
-        if ($request->hasFile('image_file')) {
-            $uploadDir = public_path('images/combos');
-            if (! File::isDirectory($uploadDir)) {
-                File::makeDirectory($uploadDir, 0755, true);
-            }
-            $file = $request->file('image_file');
-            $fileName = 'combo_'.time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
-            $file->move($uploadDir, $fileName);
-            $imagePath = 'images/combos/'.$fileName;
-        } elseif ($request->filled('image')) {
-            $imagePath = $request->input('image');
-        }
-
-        DB::transaction(function () use ($combo, $request, $imagePath) {
+        DB::transaction(function () use ($combo, $request, $validated, $imagePath) {
             $combo->update([
-                'name' => $request->input('name'),
+                'name' => $validated['name'],
                 'subtag' => $request->input('subtag'),
                 'description' => $request->input('description'),
-                'price' => $request->input('price'),
+                'price' => $validated['price'],
                 'original_price' => $request->input('original_price'),
                 'image' => $imagePath,
                 'tag' => $request->input('tag'),
-                'is_hot' => $request->has('is_hot') ? (bool) $request->boolean('is_hot') : false,
+                'is_hot' => (bool) $request->boolean('is_hot'),
                 'is_active' => $request->has('is_active') ? (bool) $request->boolean('is_active') : $combo->is_active,
                 'order' => $request->filled('order') ? (int) $request->input('order') : $combo->order,
             ]);
 
-            // Sync items: xoá cũ tạo lại
-            $combo->items()->delete();
-
-            if ($request->has('items') && is_array($request->input('items'))) {
-                $orderIndex = 1;
-                foreach ($request->input('items') as $item) {
-                    if (! empty($item['item_name'])) {
-                        ComboItem::create([
-                            'combo_id' => $combo->id,
-                            'product_id' => ! empty($item['product_id']) ? (int) $item['product_id'] : null,
-                            'item_name' => $item['item_name'],
-                            'quantity' => (int) ($item['quantity'] ?? 1),
-                            'order' => $orderIndex++,
-                        ]);
-                    }
-                }
-            }
+            $this->syncComboItems($combo, $request->input('items', []));
         });
 
-        return redirect()->route('admin.combos.index')->with('success', "Đã cập nhật combo \"{$combo->name}\" thành công!");
+        return redirect()->route('admin.combos.index')
+            ->with('success', "Đã cập nhật combo \"{$combo->name}\" thành công!");
     }
 
     /**
-     * Bật / Tắt trạng thái mở bán combo (Hỗ trợ cả JSON AJAX).
+     * Bật / Tắt trạng thái mở bán combo.
      */
     public function toggle(Request $request, int $id): JsonResponse|RedirectResponse
     {
@@ -275,6 +183,38 @@ class ComboAdminController extends Controller
     }
 
     /**
+     * Cập nhật nhanh giá tiền của gói combo (Tự lưu qua Enter / Blur).
+     */
+    public function updatePrice(Request $request, int $id): JsonResponse|RedirectResponse
+    {
+        $request->validate([
+            'price' => ['required', 'numeric', 'min:0'],
+            'original_price' => ['nullable', 'numeric', 'min:0'],
+        ], [
+            'price.required' => 'Vui lòng nhập giá bán.',
+            'price.numeric' => 'Giá bán phải là chữ số.',
+            'price.min' => 'Giá bán không được nhỏ hơn 0đ.',
+        ]);
+
+        $combo = Combo::findOrFail($id);
+        $combo->update([
+            'price' => (float) $request->input('price'),
+            'original_price' => $request->filled('original_price') ? (float) $request->input('original_price') : $combo->original_price,
+        ]);
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'price' => (float) $combo->price,
+                'formatted_price' => number_format((float) $combo->price, 0, ',', '.').' ₫',
+                'message' => "Đã lưu giá combo \"{$combo->name}\" thành công!",
+            ]);
+        }
+
+        return back()->with('success', "Đã cập nhật giá combo \"{$combo->name}\" thành công!");
+    }
+
+    /**
      * Xoá combo.
      */
     public function destroy(int $id): RedirectResponse
@@ -285,5 +225,91 @@ class ComboAdminController extends Controller
         $combo->delete();
 
         return back()->with('success', "Đã xoá combo \"{$comboName}\" thành công!");
+    }
+
+    /**
+     * Validate dữ liệu form combo.
+     */
+    private function validateCombo(Request $request): array
+    {
+        return $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'original_price' => ['nullable', 'numeric', 'min:0'],
+            'tag' => ['nullable', 'string', 'max:50'],
+            'subtag' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string', 'max:1000'],
+            'image' => ['nullable', 'string', 'max:1000'],
+            'image_file' => ['nullable', 'image', 'max:5120'],
+            'order' => ['nullable', 'integer', 'min:1'],
+            'items' => ['nullable', 'array'],
+            'items.*.item_name' => ['required', 'string', 'max:255'],
+            'items.*.quantity' => ['required', 'integer', 'min:1'],
+            'items.*.product_id' => ['nullable', 'integer'],
+        ], [
+            'name.required' => 'Vui lòng nhập tên combo.',
+            'price.required' => 'Vui lòng nhập giá bán combo.',
+        ]);
+    }
+
+    /**
+     * Xử lý tải ảnh lên hoặc dùng URL / fallback.
+     */
+    private function handleImageUpload(?UploadedFile $file, ?string $url, string $fallback): string
+    {
+        if ($file) {
+            $uploadDir = public_path('images/combos');
+            if (! File::isDirectory($uploadDir)) {
+                File::makeDirectory($uploadDir, 0755, true);
+            }
+            $fileName = 'combo_'.time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
+            $file->move($uploadDir, $fileName);
+
+            return 'images/combos/'.$fileName;
+        }
+
+        if (! empty($url)) {
+            return trim($url);
+        }
+
+        return $fallback;
+    }
+
+    /**
+     * Đồng bộ danh sách món trong combo.
+     */
+    private function syncComboItems(Combo $combo, array $items): void
+    {
+        $combo->items()->delete();
+
+        $orderIndex = 1;
+        foreach ($items as $item) {
+            if (! empty($item['item_name'])) {
+                ComboItem::create([
+                    'combo_id' => $combo->id,
+                    'product_id' => ! empty($item['product_id']) ? (int) $item['product_id'] : null,
+                    'item_name' => $item['item_name'],
+                    'quantity' => (int) ($item['quantity'] ?? 1),
+                    'order' => $orderIndex++,
+                ]);
+            }
+        }
+    }
+
+    /**
+     * Tạo slug duy nhất cho combo.
+     */
+    private function generateUniqueSlug(string $name): string
+    {
+        $baseSlug = Str::slug($name);
+        $slug = $baseSlug;
+        $counter = 1;
+
+        while (Combo::where('slug', $slug)->exists()) {
+            $slug = "{$baseSlug}-{$counter}";
+            $counter++;
+        }
+
+        return $slug;
     }
 }

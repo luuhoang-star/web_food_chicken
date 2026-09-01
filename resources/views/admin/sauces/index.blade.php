@@ -11,8 +11,17 @@
         statusFilter: 'all',
         toastMessage: '',
         isDirty: false,
-        editingToppingId: null,
-        tempToppingPrice: '',
+
+        showAddSauceModal: false,
+        newSauceName: '',
+        newSauceTagline: '',
+        newSaucePrice: 10000,
+        isAddingSauce: false,
+
+        showAddToppingModal: false,
+        newToppingName: '',
+        newToppingPrice: 10000,
+        isAddingTopping: false,
 
         sauces: {{ json_encode($sauces->map(fn($s) => [
             'id' => $s->id,
@@ -23,6 +32,7 @@
             'description' => $s->description,
             'color' => $s->slug === 'sot-cay-han' ? 'bg-red-600 ring-red-200' : ($s->slug === 'sot-pho-mai' ? 'bg-amber-400 ring-amber-200' : ($s->slug === 'sot-toi-tay' ? 'bg-lime-500 ring-lime-200' : 'bg-orange-600 ring-orange-200')),
             'is_dirty' => false,
+            'saved_name' => $s->name,
             'saved_price' => (int)$s->price,
             'saved_tagline' => $s->tagline
         ])) }},
@@ -32,6 +42,9 @@
             'name' => $t->name,
             'price' => (int)$t->price,
             'is_available' => (bool)$t->is_available,
+            'saved_name' => $t->name,
+            'saved_price' => (int)$t->price,
+            'is_dirty' => false,
             'is_loading' => false
         ])) }},
 
@@ -48,7 +61,7 @@
         // VỊ SỐT ACTIONS
         onSauceChange(idx) {
             const s = this.sauces[idx];
-            s.is_dirty = (s.price != s.saved_price || s.tagline != s.saved_tagline);
+            s.is_dirty = (s.name !== s.saved_name || s.price != s.saved_price || s.tagline !== s.saved_tagline);
             this.checkGlobalDirty();
         },
 
@@ -58,6 +71,10 @@
 
         async saveSauce(idx) {
             const s = this.sauces[idx];
+            if (!s.name || !s.name.trim()) {
+                s.name = s.saved_name;
+                return;
+            }
             try {
                 const res = await fetch(`/admin/sauces/${s.id}`, {
                     method: 'PATCH',
@@ -67,6 +84,7 @@
                         'Accept': 'application/json'
                     },
                     body: JSON.stringify({
+                        name: s.name,
                         tagline: s.tagline,
                         price: s.price,
                         description: s.description
@@ -74,6 +92,7 @@
                 });
                 const data = await res.json();
                 if (data.success) {
+                    s.saved_name = s.name;
                     s.saved_price = s.price;
                     s.saved_tagline = s.tagline;
                     s.is_dirty = false;
@@ -98,6 +117,7 @@
 
         cancelSauceChanges() {
             this.sauces.forEach(s => {
+                s.name = s.saved_name;
                 s.price = s.saved_price;
                 s.tagline = s.saved_tagline;
                 s.is_dirty = false;
@@ -105,29 +125,81 @@
             this.isDirty = false;
         },
 
-        // TOPPING ACTIONS
-        startEditTopping(t) {
-            this.editingToppingId = t.id;
-            this.tempToppingPrice = t.price;
-            this.$nextTick(() => {
-                const el = document.getElementById('topping-price-input-' + t.id);
-                if (el) { el.focus(); el.select(); }
-            });
+        async deleteSauce(s, idx) {
+            if (!confirm(`Bạn có chắc chắn muốn xoá vị sốt '${s.name}' khỏi hệ thống?`)) return;
+            try {
+                const res = await fetch(`/admin/sauces/${s.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    this.sauces.splice(idx, 1);
+                    this.checkGlobalDirty();
+                    this.showToast(`Đã xoá vị sốt '${s.name}' thành công!`);
+                } else {
+                    alert('Không thể xoá vị sốt.');
+                }
+            } catch (e) {
+                alert('Lỗi kết nối khi xoá vị sốt.');
+            }
         },
 
-        cancelEditTopping() {
-            this.editingToppingId = null;
-            this.tempToppingPrice = '';
-        },
-
-        async saveToppingPrice(t) {
-            if (this.tempToppingPrice === '' || isNaN(this.tempToppingPrice) || this.tempToppingPrice < 0) {
-                this.cancelEditTopping();
+        async createSauce() {
+            if (!this.newSauceName.trim()) {
+                alert('Vui lòng nhập tên vị sốt.');
                 return;
             }
-            const oldPrice = t.price;
-            t.price = parseInt(this.tempToppingPrice);
-            this.editingToppingId = null;
+            this.isAddingSauce = true;
+            try {
+                const res = await fetch('/admin/sauces', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: this.newSauceName,
+                        tagline: this.newSauceTagline,
+                        price: this.newSaucePrice
+                    })
+                });
+                const data = await res.json();
+                if (data.success && data.sauce) {
+                    this.sauces.push(data.sauce);
+                    this.newSauceName = '';
+                    this.newSauceTagline = '';
+                    this.newSaucePrice = 10000;
+                    this.showAddSauceModal = false;
+                    this.showToast(data.message);
+                } else {
+                    alert(data.message || 'Không thể tạo vị sốt mới.');
+                }
+            } catch (e) {
+                alert('Lỗi kết nối khi tạo vị sốt.');
+            } finally {
+                this.isAddingSauce = false;
+            }
+        },
+
+        // TOPPING ACTIONS
+        onToppingChange(t) {
+            t.is_dirty = (t.name !== t.saved_name || t.price != t.saved_price);
+        },
+
+        async saveTopping(t) {
+            if (!t.name || !t.name.trim()) {
+                t.name = t.saved_name;
+                return;
+            }
+            if (t.price === '' || isNaN(t.price) || t.price < 0) {
+                t.price = t.saved_price;
+                return;
+            }
 
             try {
                 const res = await fetch(`/admin/toppings/${t.id}`, {
@@ -137,18 +209,87 @@
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ price: t.price })
+                    body: JSON.stringify({ 
+                        name: t.name,
+                        price: t.price 
+                    })
                 });
                 const data = await res.json();
                 if (data.success) {
-                    this.showToast(`Đã cập nhật giá '${t.name}': ${this.formatMoney(t.price)}`);
+                    t.saved_name = t.name;
+                    t.saved_price = t.price;
+                    t.is_dirty = false;
+                    this.showToast(`Đã lưu topping '${t.name}': ${this.formatMoney(t.price)}`);
                 } else {
-                    t.price = oldPrice;
-                    alert('Không thể lưu giá topping.');
+                    t.name = t.saved_name;
+                    t.price = t.saved_price;
+                    alert('Không thể lưu topping.');
                 }
             } catch (e) {
-                t.price = oldPrice;
-                alert('Lỗi kết nối khi lưu giá topping.');
+                t.name = t.saved_name;
+                t.price = t.saved_price;
+                alert('Lỗi kết nối khi lưu topping.');
+            }
+        },
+
+        async deleteTopping(t) {
+            if (!confirm(`Bạn có chắc chắn muốn xoá topping '${t.name}' khỏi hệ thống?`)) return;
+            try {
+                const res = await fetch(`/admin/toppings/${t.id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const idx = this.toppings.findIndex(item => item.id === t.id);
+                    if (idx !== -1) {
+                        this.toppings.splice(idx, 1);
+                    }
+                    this.showToast(`Đã xoá topping '${t.name}' thành công!`);
+                } else {
+                    alert('Không thể xoá topping.');
+                }
+            } catch (e) {
+                alert('Lỗi kết nối khi xoá topping.');
+            }
+        },
+
+        async createTopping() {
+            if (!this.newToppingName.trim()) {
+                alert('Vui lòng nhập tên topping.');
+                return;
+            }
+            this.isAddingTopping = true;
+            try {
+                const res = await fetch('/admin/toppings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        name: this.newToppingName,
+                        price: this.newToppingPrice
+                    })
+                });
+                const data = await res.json();
+                if (data.success && data.topping) {
+                    this.toppings.push(data.topping);
+                    this.newToppingName = '';
+                    this.newToppingPrice = 10000;
+                    this.showAddToppingModal = false;
+                    this.showToast(data.message);
+                } else {
+                    alert(data.message || 'Không thể tạo topping mới.');
+                }
+            } catch (e) {
+                alert('Lỗi kết nối khi tạo topping.');
+            } finally {
+                this.isAddingTopping = false;
             }
         },
 
@@ -256,7 +397,7 @@
 
     <!-- 2. KHU VỰC 1: 🌶️ VỊ SỐT ĐẶC TRƯNG -->
     <div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden space-y-2">
-        <div class="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
+        <div class="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
             <div class="flex items-center gap-2">
                 <h3 class="font-black text-sm text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                     <span>🌶️</span>
@@ -264,7 +405,18 @@
                 </h3>
                 <span class="px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-bold" x-text="filteredSauces().length + ' loại'"></span>
             </div>
-            <span class="text-[11px] text-gray-400 font-medium">Giá hũ nhỏ mua thêm & slogan nhận diện</span>
+            
+            <div class="flex items-center gap-2">
+                <span class="text-[11px] text-gray-400 font-medium hidden md:inline">Click vào Tên, Slogan, Giá để sửa</span>
+                <button 
+                    type="button" 
+                    @click="showAddSauceModal = true"
+                    class="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                    <span>+</span>
+                    <span>Thêm vị sốt</span>
+                </button>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -275,17 +427,26 @@
                         <th class="px-4 py-3">Khẩu Hiệu Nhận Diện (1 dòng)</th>
                         <th class="px-4 py-3 text-right">Giá Hũ Mua Thêm</th>
                         <th class="px-4 py-3 text-right w-24">Trạng Thái</th>
+                        <th class="px-4 py-3 text-center w-16">Xoá</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 font-medium text-gray-700">
                     <template x-for="(s, idx) in filteredSauces()" :key="s.id">
-                        <tr class="hover:bg-gray-50/50 transition-colors">
+                        <tr class="hover:bg-gray-50/50 transition-colors group">
                             
-                            <!-- Tên sốt -->
+                            <!-- Tên sốt (Sửa trực tiếp) -->
                             <td class="px-4 py-3 whitespace-nowrap">
                                 <div class="flex items-center gap-2.5">
-                                    <span class="w-3 h-3 rounded-full ring-2 shrink-0" :class="s.color"></span>
-                                    <span class="font-black text-gray-900 text-xs" x-text="s.name"></span>
+                                    <span class="w-3.5 h-3.5 rounded-full ring-2 shrink-0 shadow-xs" :class="s.color"></span>
+                                    <input 
+                                        type="text" 
+                                        x-model="s.name" 
+                                        @input="onSauceChange(idx)"
+                                        @blur="if(s.is_dirty) saveSauce(idx)"
+                                        @keydown.enter.prevent="if(s.is_dirty) saveSauce(idx)"
+                                        title="Click để sửa tên vị sốt trực tiếp"
+                                        class="px-2.5 py-1.5 rounded-lg bg-gray-50 hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-red-500 text-xs font-black text-gray-900 outline-none transition-all cursor-text"
+                                    >
                                 </div>
                             </td>
 
@@ -296,8 +457,10 @@
                                     x-model="s.tagline" 
                                     @input="onSauceChange(idx)"
                                     @blur="if(s.is_dirty) saveSauce(idx)"
+                                    @keydown.enter.prevent="if(s.is_dirty) saveSauce(idx)"
                                     placeholder="Khẩu hiệu nhận diện sốt..." 
-                                    class="w-full px-2.5 py-1.5 rounded-lg bg-gray-50 hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-red-500 text-xs font-semibold text-gray-800 outline-none transition-all truncate"
+                                    title="Click để sửa khẩu hiệu"
+                                    class="w-full px-2.5 py-1.5 rounded-lg bg-gray-50 hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-red-500 text-xs font-semibold text-gray-800 outline-none transition-all truncate cursor-text"
                                 >
                             </td>
 
@@ -309,9 +472,11 @@
                                         x-model="s.price" 
                                         @input="onSauceChange(idx)"
                                         @blur="if(s.is_dirty) saveSauce(idx)"
+                                        @keydown.enter.prevent="if(s.is_dirty) saveSauce(idx)"
                                         step="1000" 
                                         min="0"
-                                        class="w-24 px-2.5 py-1.5 rounded-lg bg-gray-50 hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-red-500 text-xs font-black text-red-600 outline-none text-right transition-all font-mono"
+                                        title="Click để sửa giá hũ mua thêm"
+                                        class="w-24 px-2.5 py-1.5 rounded-lg bg-gray-50 hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-red-500 text-xs font-black text-red-600 outline-none text-right transition-all font-mono cursor-text"
                                     >
                                     <span class="text-xs text-gray-400 font-bold">đ</span>
                                 </div>
@@ -327,6 +492,18 @@
                                 </span>
                             </td>
 
+                            <!-- Nút Xoá Vị Sốt -->
+                            <td class="px-4 py-3 whitespace-nowrap text-center">
+                                <button 
+                                    type="button" 
+                                    @click="deleteSauce(s, idx)"
+                                    title="Xoá vị sốt này"
+                                    class="p-1.5 rounded-lg text-gray-300 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                                >
+                                    🗑️
+                                </button>
+                            </td>
+
                         </tr>
                     </template>
                 </tbody>
@@ -336,7 +513,7 @@
 
     <!-- 3. KHU VỰC 2: 🍳 TOPPING ĂN KÈM -->
     <div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden space-y-2">
-        <div class="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between">
+        <div class="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between flex-wrap gap-2">
             <div class="flex items-center gap-2">
                 <h3 class="font-black text-sm text-gray-900 uppercase tracking-wider flex items-center gap-1.5">
                     <span>🍳</span>
@@ -344,7 +521,18 @@
                 </h3>
                 <span class="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 text-xs font-bold" x-text="filteredToppings().length + ' loại'"></span>
             </div>
-            <span class="text-[11px] text-gray-400 font-medium">Click vào giá để sửa trực tiếp (Enter để lưu)</span>
+            
+            <div class="flex items-center gap-2">
+                <span class="text-[11px] text-gray-400 font-medium hidden md:inline">Click trực tiếp vào Tên hoặc Giá để sửa</span>
+                <button 
+                    type="button" 
+                    @click="showAddToppingModal = true"
+                    class="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                    <span>+</span>
+                    <span>Thêm topping</span>
+                </button>
+            </div>
         </div>
 
         <div class="overflow-x-auto">
@@ -352,57 +540,53 @@
                 <thead class="bg-gray-50/80 text-gray-500 uppercase tracking-wider text-[10px] font-black border-b border-gray-100">
                     <tr>
                         <th class="px-4 py-3">Tên Topping</th>
-                        <th class="px-4 py-3 text-right">Giá Bán Thêm</th>
-                        <th class="px-4 py-3 text-center w-36">Trạng Thái Phục Vụ</th>
-                        <th class="px-4 py-3 text-right w-28">Thao Tác</th>
+                        <th class="px-4 py-3 text-right w-44">Giá Bán Thêm</th>
+                        <th class="px-4 py-3 text-center w-40">Trạng Thái Phục Vụ</th>
+                        <th class="px-4 py-3 text-center w-16">Xoá</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 font-medium text-gray-700">
                     <template x-for="t in filteredToppings()" :key="t.id">
-                        <tr class="hover:bg-gray-50/50 transition-colors" :class="!t.is_available ? 'opacity-60 bg-gray-50/40' : ''">
+                        <tr class="hover:bg-gray-50/50 transition-colors group" :class="!t.is_available ? 'opacity-60 bg-gray-50/40' : ''">
                             
-                            <!-- Tên topping -->
-                            <td class="px-4 py-3.5 whitespace-nowrap">
-                                <span class="font-black text-gray-900 text-xs" x-text="t.name"></span>
+                            <!-- Tên topping (Sửa trực tiếp) -->
+                            <td class="px-4 py-3 whitespace-nowrap">
+                                <input 
+                                    type="text" 
+                                    x-model="t.name" 
+                                    @input="onToppingChange(t)"
+                                    @blur="if(t.is_dirty) saveTopping(t)"
+                                    @keydown.enter.prevent="if(t.is_dirty) saveTopping(t)"
+                                    title="Click để sửa tên topping trực tiếp"
+                                    class="w-full max-w-sm px-2.5 py-1.5 rounded-lg bg-gray-50 hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-red-500 text-xs font-black text-gray-900 outline-none transition-all cursor-text"
+                                >
                             </td>
 
-                            <!-- Giá bán thêm (Inline Edit 1-chạm) -->
-                            <td class="px-4 py-3.5 whitespace-nowrap text-right">
-                                <!-- Mode xem: Click để sửa -->
-                                <div 
-                                    x-show="editingToppingId !== t.id" 
-                                    @click="startEditTopping(t)"
-                                    class="inline-flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-gray-100 cursor-pointer group transition-colors"
-                                    title="Click để chỉnh giá nhanh"
-                                >
-                                    <span class="font-black font-mono text-xs text-gray-900 group-hover:text-red-600" x-text="formatMoney(t.price)"></span>
-                                    <span class="text-[10px] text-gray-300 group-hover:text-gray-500">✏️</span>
-                                </div>
-
-                                <!-- Mode sửa inline: Enter lưu, Esc huỷ -->
-                                <div x-show="editingToppingId === t.id" class="inline-flex items-center gap-1" x-cloak>
+                            <!-- Giá bán thêm (Sửa trực tiếp) -->
+                            <td class="px-4 py-3 whitespace-nowrap text-right">
+                                <div class="inline-flex items-center justify-end gap-1">
                                     <input 
-                                        :id="'topping-price-input-' + t.id"
                                         type="number" 
-                                        x-model="tempToppingPrice"
-                                        step="1000"
+                                        x-model="t.price" 
+                                        @input="onToppingChange(t)"
+                                        @blur="if(t.is_dirty) saveTopping(t)"
+                                        @keydown.enter.prevent="if(t.is_dirty) saveTopping(t)"
+                                        step="1000" 
                                         min="0"
-                                        @keydown.enter.prevent="saveToppingPrice(t)"
-                                        @keydown.escape.prevent="cancelEditTopping()"
-                                        @blur="saveToppingPrice(t)"
-                                        class="w-24 px-2 py-1 rounded-lg bg-white border-2 border-red-500 text-xs font-black text-red-600 text-right outline-none font-mono shadow-xs"
+                                        title="Click để sửa giá bán thêm"
+                                        class="w-28 px-2.5 py-1.5 rounded-lg bg-gray-50 hover:bg-white focus:bg-white border border-transparent hover:border-gray-200 focus:border-red-500 text-xs font-black text-red-600 outline-none text-right transition-all font-mono cursor-text"
                                     >
                                     <span class="text-xs text-gray-400 font-bold">đ</span>
                                 </div>
                             </td>
 
                             <!-- Trạng thái Toggle 1-Click -->
-                            <td class="px-4 py-3.5 whitespace-nowrap text-center">
+                            <td class="px-4 py-3 whitespace-nowrap text-center">
                                 <button 
                                     type="button" 
                                     @click="toggleToppingStatus(t)"
                                     :disabled="t.is_loading"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer shadow-2xs"
+                                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer shadow-2xs"
                                     :class="t.is_available ? 'bg-emerald-100 hover:bg-emerald-200 text-emerald-800 border border-emerald-300' : 'bg-gray-100 hover:bg-gray-200 text-gray-500 border border-gray-200'"
                                 >
                                     <span class="w-2 h-2 rounded-full" :class="t.is_available ? 'bg-emerald-600 animate-pulse' : 'bg-gray-400'"></span>
@@ -410,14 +594,15 @@
                                 </button>
                             </td>
 
-                            <!-- Thao tác nhanh -->
-                            <td class="px-4 py-3.5 whitespace-nowrap text-right">
+                            <!-- Nút Xoá Topping -->
+                            <td class="px-4 py-3 whitespace-nowrap text-center">
                                 <button 
                                     type="button" 
-                                    @click="startEditTopping(t)"
-                                    class="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-[11px] transition-colors cursor-pointer"
+                                    @click="deleteTopping(t)"
+                                    title="Xoá topping này"
+                                    class="p-1.5 rounded-lg text-gray-300 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                                 >
-                                    Sửa giá
+                                    🗑️
                                 </button>
                             </td>
 
@@ -436,7 +621,147 @@
         </div>
     </div>
 
-    <!-- 4. STICKY BULK ACTION BAR (KHI CÓ THAY ĐỔI VỊ SỐT CHƯA LƯU) -->
+    <!-- 4. MODAL THÊM VỊ SỐT MỚI -->
+    <div 
+        x-show="showAddSauceModal" 
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" 
+        x-cloak
+    >
+        <div 
+            @click.outside="showAddSauceModal = false"
+            class="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 border border-gray-100"
+        >
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 class="font-black text-sm text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                    <span>🌶️</span>
+                    <span>Thêm Vị Sốt Mới</span>
+                </h3>
+                <button type="button" @click="showAddSauceModal = false" class="text-gray-400 hover:text-gray-600 text-sm font-bold">✕</button>
+            </div>
+
+            <div class="space-y-3">
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold text-gray-700">Tên vị sốt <span class="text-red-500">*</span></label>
+                    <input 
+                        type="text" 
+                        x-model="newSauceName" 
+                        placeholder="VD: Sốt Trứng Muối Hoàng Kim" 
+                        class="w-full px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-900 focus:bg-white focus:border-red-500 outline-none"
+                    >
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold text-gray-700">Khẩu hiệu / Slogan ngắn</label>
+                    <input 
+                        type="text" 
+                        x-model="newSauceTagline" 
+                        placeholder="VD: Vị béo ngậy đậm đà trứng muối thật..." 
+                        class="w-full px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-semibold text-gray-800 focus:bg-white focus:border-red-500 outline-none"
+                    >
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold text-gray-700">Giá hũ bán thêm</label>
+                    <div class="relative">
+                        <input 
+                            type="number" 
+                            x-model="newSaucePrice" 
+                            step="1000" 
+                            min="0"
+                            class="w-full px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-black text-red-600 focus:bg-white focus:border-red-500 outline-none pr-8 font-mono"
+                        >
+                        <span class="absolute right-3 top-2 text-xs text-gray-400 font-bold">đ</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <button 
+                    type="button" 
+                    @click="showAddSauceModal = false"
+                    class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition-colors cursor-pointer"
+                >
+                    Đóng
+                </button>
+                <button 
+                    type="button" 
+                    @click="createSauce()"
+                    :disabled="isAddingSauce"
+                    class="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
+                >
+                    <span x-show="!isAddingSauce">Lưu vị sốt</span>
+                    <span x-show="isAddingSauce">Đang lưu...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. MODAL THÊM TOPPING MỚI -->
+    <div 
+        x-show="showAddToppingModal" 
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" 
+        x-cloak
+    >
+        <div 
+            @click.outside="showAddToppingModal = false"
+            class="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 border border-gray-100"
+        >
+            <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                <h3 class="font-black text-sm text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                    <span>🍳</span>
+                    <span>Thêm Topping Mới</span>
+                </h3>
+                <button type="button" @click="showAddToppingModal = false" class="text-gray-400 hover:text-gray-600 text-sm font-bold">✕</button>
+            </div>
+
+            <div class="space-y-3">
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold text-gray-700">Tên topping <span class="text-red-500">*</span></label>
+                    <input 
+                        type="text" 
+                        x-model="newToppingName" 
+                        placeholder="VD: Rong Biển Rắc Mè" 
+                        class="w-full px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-bold text-gray-900 focus:bg-white focus:border-red-500 outline-none"
+                    >
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block text-xs font-bold text-gray-700">Giá bán thêm</label>
+                    <div class="relative">
+                        <input 
+                            type="number" 
+                            x-model="newToppingPrice" 
+                            step="1000" 
+                            min="0"
+                            class="w-full px-3.5 py-2 rounded-xl bg-gray-50 border border-gray-200 text-xs font-black text-red-600 focus:bg-white focus:border-red-500 outline-none pr-8 font-mono"
+                        >
+                        <span class="absolute right-3 top-2 text-xs text-gray-400 font-bold">đ</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                <button 
+                    type="button" 
+                    @click="showAddToppingModal = false"
+                    class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition-colors cursor-pointer"
+                >
+                    Đóng
+                </button>
+                <button 
+                    type="button" 
+                    @click="createTopping()"
+                    :disabled="isAddingTopping"
+                    class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition-all shadow-xs cursor-pointer"
+                >
+                    <span x-show="!isAddingTopping">Lưu topping</span>
+                    <span x-show="isAddingTopping">Đang lưu...</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. STICKY BULK ACTION BAR (KHI CÓ THAY ĐỔI VỊ SỐT CHƯA LƯU) -->
     <div 
         x-show="isDirty" 
         x-transition:enter="transition ease-out duration-200"

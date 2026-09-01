@@ -41,17 +41,20 @@
         
         @media print {
             body * { visibility: hidden !important; }
-            #receipt-print-area, #receipt-print-area * { visibility: visible !important; }
-            #receipt-print-area {
-                position: absolute;
-                left: 0;
-                top: 0;
+            #printable-receipt, #printable-receipt *, #receipt-print-area, #receipt-print-area * { visibility: visible !important; }
+            #printable-receipt, #receipt-print-area {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
                 width: 78mm !important;
                 margin: 0 !important;
-                padding: 2mm !important;
+                padding: 3mm !important;
                 background: white !important;
                 color: black !important;
                 border: none !important;
+                font-family: monospace !important;
+                font-size: 11px !important;
+                line-height: 1.3 !important;
             }
         }
     </style>
@@ -83,12 +86,18 @@
 
         <!-- Navigation Links -->
         <nav class="flex-1 px-3 py-4 space-y-1 text-sm font-semibold overflow-y-auto">
+            
+            <!-- NHÓM 1: VẬN HÀNH BÁN HÀNG -->
+            <div class="px-3 pb-1.5 pt-1 text-[10px] font-black uppercase tracking-wider text-gray-500">
+                Vận Hành Bán Hàng
+            </div>
+
             <a 
                 href="{{ route('admin.dashboard') }}" 
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.dashboard') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
             >
                 <span class="text-base">📊</span>
-                <span>Tổng Quan</span>
+                <span>Báo Cáo Tổng Quan</span>
             </a>
 
             <a 
@@ -97,7 +106,7 @@
             >
                 <div class="flex items-center gap-3">
                     <span class="text-base">🛒</span>
-                    <span>Đơn Hàng</span>
+                    <span>Quản Lý Đơn Hàng</span>
                 </div>
                 <span id="sidebar-pending-badge" class="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white hidden">0</span>
             </a>
@@ -108,6 +117,14 @@
             >
                 <span class="text-base">🍗</span>
                 <span>Thực Đơn Món</span>
+            </a>
+
+            <a 
+                href="{{ route('admin.categories.index') }}" 
+                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.categories.*') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
+            >
+                <span class="text-base">📂</span>
+                <span>Danh Mục Món</span>
             </a>
 
             <a 
@@ -134,24 +151,25 @@
                 <span>Mã Giảm Giá Voucher</span>
             </a>
 
-            <div class="pt-3 pb-1 border-t border-gray-800/80"></div>
+            <!-- NHÓM 2: WEBSITE & CÀI ĐẶT -->
+            <div class="px-3 pb-1.5 pt-4 text-[10px] font-black uppercase tracking-wider text-gray-500 border-t border-gray-800/80 mt-3">
+                Giao Diện & Cài Đặt
+            </div>
 
             <a 
                 href="{{ route('admin.content.index') }}" 
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.content.*') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
             >
-                <span class="text-base">📢</span>
-                <span>Nội Dung Trang Chủ</span>
+                <span class="text-base">🎨</span>
+                <span>Giao Diện & Trang Chủ</span>
             </a>
-
-            <div class="pt-3 pb-1 border-t border-gray-800/80"></div>
 
             <a 
                 href="{{ route('admin.settings.index') }}" 
                 class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.settings.*') ? 'bg-red-600 text-white font-bold shadow-sm' : 'text-gray-400 hover:bg-gray-800/80 hover:text-white' }}"
             >
                 <span class="text-base">⚙️</span>
-                <span>Cài Đặt Quán</span>
+                <span>Cài Đặt Vận Hành Quán</span>
             </a>
 
             <a 
@@ -230,43 +248,52 @@
             </div>
 
             <nav class="flex-1 px-3 py-4 space-y-1 text-sm font-semibold overflow-y-auto">
+                <div class="px-3 pb-1.5 pt-1 text-[10px] font-black uppercase tracking-wider text-gray-500">
+                    Vận Hành Bán Hàng
+                </div>
+
                 <a href="{{ route('admin.dashboard') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.dashboard') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
                     <span>📊</span>
-                    <span>Báo Cáo & Tổng Quan</span>
+                    <span>Báo Cáo Tổng Quan</span>
                 </a>
                 <a href="{{ route('admin.orders.index') }}" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.orders.*') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
                     <div class="flex items-center gap-3">
-                        <span>📋</span>
+                        <span>🛒</span>
                         <span>Quản Lý Đơn Hàng</span>
                     </div>
                 </a>
                 <a href="{{ route('admin.products.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.products.*') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
                     <span>🍗</span>
-                    <span>Thực Đơn Món Ăn</span>
+                    <span>Thực Đơn Món</span>
                 </a>
                 <a href="{{ route('admin.categories.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.categories.*') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
                     <span>📂</span>
                     <span>Danh Mục Món</span>
                 </a>
                 <a href="{{ route('admin.combos.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.combos.*') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
-                    <span>🍱</span>
-                    <span>Gói Combo Ưu Đãi</span>
+                    <span>📦</span>
+                    <span>Gói Combo</span>
                 </a>
                 <a href="{{ route('admin.sauces.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.sauces.*') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
-                    <span>🌶️</span>
+                    <span>🥫</span>
                     <span>Vị Sốt & Topping</span>
                 </a>
                 <a href="{{ route('admin.coupons.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.coupons.*') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
-                    <span>🏷️</span>
+                    <span>🎟️</span>
                     <span>Mã Giảm Giá Voucher</span>
                 </a>
+
+                <div class="px-3 pb-1.5 pt-4 text-[10px] font-black uppercase tracking-wider text-gray-500 border-t border-gray-800/80 mt-3">
+                    Giao Diện & Cài Đặt
+                </div>
+
                 <a href="{{ route('admin.content.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.content.*') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
-                    <span>📢</span>
-                    <span>Nội Dung Trang Chủ</span>
+                    <span>🎨</span>
+                    <span>Giao Diện & Trang Chủ</span>
                 </a>
                 <a href="{{ route('admin.settings.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.settings.*') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
                     <span>⚙️</span>
-                    <span>Cài Đặt & Marketing</span>
+                    <span>Cài Đặt Vận Hành Quán</span>
                 </a>
                 <a href="{{ route('admin.profile.show') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.profile.*') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
                     <span>🔐</span>
@@ -309,21 +336,26 @@
             </div>
             
             <div class="flex items-center gap-2">
-                <!-- Nút Tạm Dừng / Mở Bếp Nhận Đơn -->
+                <!-- Nút Tạm Dừng / Mở Bếp Nhận Đơn (1-Chạm AJAX Rõ Ràng & Chống Nhầm Lẫn) -->
                 @php
                     $storeStatus = \App\Models\SiteSetting::get('store_open_status', 'open');
                 @endphp
-                <form action="{{ route('admin.settings.toggle-store-status') }}" method="POST" class="inline">
-                    @csrf
-                    @method('PATCH')
-                    <button 
-                        type="submit" 
-                        class="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer {{ $storeStatus === 'open' ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200 border border-emerald-300' : 'bg-rose-600 text-white hover:bg-rose-700 animate-pulse' }}"
-                        title="Bấm để Đóng / Mở nhận đơn trên website"
-                    >
-                        <span>{{ $storeStatus === 'open' ? '🟢 ĐANG NHẬN ĐƠN' : '🔴 TẠM DỪNG ĐƠN' }}</span>
-                    </button>
-                </form>
+                <button 
+                    type="button" 
+                    id="topbar-store-toggle-btn"
+                    onclick="toggleStoreOpenStatus(this)"
+                    class="inline-flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer {{ $storeStatus === 'open' ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300' : 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm animate-pulse' }}"
+                    title="{{ $storeStatus === 'open' ? 'Quán đang MỞ nhận đơn. Click để Tạm dừng nhận đơn.' : 'Quán đang TẠM DỪNG nhận đơn. Click để Mở nhận đơn lại.' }}"
+                    data-status="{{ $storeStatus }}"
+                >
+                    <span class="w-2 h-2 rounded-full {{ $storeStatus === 'open' ? 'bg-emerald-500' : 'bg-white' }}" id="topbar-store-dot"></span>
+                    <span id="topbar-store-status-text">
+                        {{ $storeStatus === 'open' ? 'Quán: ĐANG MỞ' : 'Quán: TẠM DỪNG' }}
+                    </span>
+                    <span id="topbar-store-action-hint" class="hidden md:inline text-[10px] opacity-75 font-normal">
+                        {{ $storeStatus === 'open' ? '(Click tạm dừng)' : '(Click mở lại)' }}
+                    </span>
+                </button>
 
                 <!-- Nút Bật/Tắt & Test Chuông Báo Đơn -->
                 <div class="flex items-center gap-1 bg-gray-100 p-1 rounded-xl" id="sound-control-wrapper">
@@ -355,34 +387,36 @@
         </header>
 
         <!-- Flash Alerts -->
-        <div class="p-4 sm:p-6 pb-0 space-y-3">
-            @if(session('success'))
-                <div class="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 shadow-xs">
-                    <div class="flex items-center gap-2">
-                        <span>✅</span>
-                        <span>{{ session('success') }}</span>
+        @if(session('success') || session('error') || session('info'))
+            <div class="px-4 sm:px-6 pt-4 space-y-3">
+                @if(session('success'))
+                    <div class="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 shadow-xs">
+                        <div class="flex items-center gap-2">
+                            <span>✅</span>
+                            <span>{{ session('success') }}</span>
+                        </div>
                     </div>
-                </div>
-            @endif
+                @endif
 
-            @if(session('error'))
-                <div class="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 shadow-xs">
-                    <div class="flex items-center gap-2">
-                        <span>❌</span>
-                        <span>{{ session('error') }}</span>
+                @if(session('error'))
+                    <div class="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-900 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 shadow-xs">
+                        <div class="flex items-center gap-2">
+                            <span>❌</span>
+                            <span>{{ session('error') }}</span>
+                        </div>
                     </div>
-                </div>
-            @endif
+                @endif
 
-            @if(session('info'))
-                <div class="p-4 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 shadow-xs">
-                    <div class="flex items-center gap-2">
-                        <span>ℹ️</span>
-                        <span>{{ session('info') }}</span>
+                @if(session('info'))
+                    <div class="p-3.5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-900 text-xs sm:text-sm font-semibold flex items-center justify-between gap-3 shadow-xs">
+                        <div class="flex items-center gap-2">
+                            <span>ℹ️</span>
+                            <span>{{ session('info') }}</span>
+                        </div>
                     </div>
-                </div>
-            @endif
-        </div>
+                @endif
+            </div>
+        @endif
 
         <!-- Page Dynamic Content -->
         <div class="p-4 sm:p-6 flex-1">
@@ -603,6 +637,45 @@
                 }
             } catch (err) {
                 console.debug("Poll orders error:", err);
+            }
+        }
+
+        async function toggleStoreOpenStatus(btn) {
+            try {
+                btn.style.opacity = '0.5';
+                const res = await fetch('{{ route('admin.settings.toggle-store-status') }}', {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                    }
+                });
+                btn.style.opacity = '1';
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    const isOpen = data.store_open_status === 'open';
+                    btn.setAttribute('data-status', data.store_open_status);
+                    const textSpan = document.getElementById('topbar-store-status-text');
+                    const dotSpan = document.getElementById('topbar-store-dot');
+                    const hintSpan = document.getElementById('topbar-store-action-hint');
+
+                    if (isOpen) {
+                        btn.className = 'inline-flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300';
+                        btn.title = 'Quán đang MỞ nhận đơn. Click để Tạm dừng nhận đơn.';
+                        if (textSpan) textSpan.textContent = 'Quán: ĐANG MỞ';
+                        if (dotSpan) dotSpan.className = 'w-2 h-2 rounded-full bg-emerald-500';
+                        if (hintSpan) hintSpan.textContent = '(Click tạm dừng)';
+                    } else {
+                        btn.className = 'inline-flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer bg-rose-600 text-white hover:bg-rose-700 shadow-sm animate-pulse';
+                        btn.title = 'Quán đang TẠM DỪNG nhận đơn. Click để Mở nhận đơn lại.';
+                        if (textSpan) textSpan.textContent = 'Quán: TẠM DỪNG';
+                        if (dotSpan) dotSpan.className = 'w-2 h-2 rounded-full bg-white';
+                        if (hintSpan) hintSpan.textContent = '(Click mở lại)';
+                    }
+                }
+            } catch (e) {
+                btn.style.opacity = '1';
             }
         }
 

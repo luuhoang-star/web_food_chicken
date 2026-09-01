@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Benefit;
 use App\Models\Hero;
+use App\Models\SiteSetting;
 use App\Models\Testimonial;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -21,11 +22,13 @@ class ContentAdminController extends Controller
         $hero = Hero::first();
         $benefits = Benefit::ordered()->get();
         $testimonials = Testimonial::ordered()->get();
+        $settings = SiteSetting::allKeyed();
 
         return view('admin.content.index', [
             'hero' => $hero,
             'benefits' => $benefits,
             'testimonials' => $testimonials,
+            'settings' => $settings,
         ]);
     }
 
@@ -48,10 +51,14 @@ class ContentAdminController extends Controller
             'badge',
             'title',
             'title_highlight',
-            'description',
             'stat_number',
             'stat_label',
         ]));
+        if ($request->filled('description')) {
+            $hero->subtitle = $request->input('description');
+        } elseif ($request->filled('subtitle')) {
+            $hero->subtitle = $request->input('subtitle');
+        }
         $hero->is_active = true;
         $hero->save();
 

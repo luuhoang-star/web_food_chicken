@@ -42,6 +42,7 @@ class SiteSettingSeeder extends Seeder
             ['key' => 'bank_name', 'value' => 'MB Bank (Quân Đội)', 'group' => 'payment', 'type' => 'text', 'description' => 'Tên ngân hàng'],
             ['key' => 'bank_account_number', 'value' => '0988888888', 'group' => 'payment', 'type' => 'text', 'description' => 'Số tài khoản ngân hàng'],
             ['key' => 'bank_account_holder', 'value' => 'GAO CHICKEN HA NOI', 'group' => 'payment', 'type' => 'text', 'description' => 'Chủ tài khoản'],
+            ['key' => 'bank_transfer_prefix', 'value' => 'HUBBY', 'group' => 'payment', 'type' => 'text', 'description' => 'Tiền tố nội dung chuyển khoản'],
 
             // Marketing & Popup
             ['key' => 'popup_enabled', 'value' => '0', 'group' => 'marketing', 'type' => 'boolean', 'description' => 'Bật popup khuyến mãi trang chủ'],

@@ -127,6 +127,7 @@ test('product model tag accessor sanitizes legacy tags', function () {
 test('order service calculates free shipping for orders over 100k', function () {
     $service = new OrderService;
     $product = Product::first();
+    $product->update(['price' => 120000]);
 
     $order = $service->createOrder([
         'fullName' => 'Test Customer',

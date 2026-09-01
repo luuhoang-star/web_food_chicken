@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreOrderRequest;
 use App\Models\Coupon;
 use App\Services\OrderService;
+use DomainException;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -27,6 +28,11 @@ class OrderController extends Controller
                 'totalAmount' => $order->total_amount,
                 'order' => $order,
             ], 201);
+        } catch (DomainException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 422);
         } catch (Exception $e) {
             Log::error('Order creation failed: '.$e->getMessage());
 

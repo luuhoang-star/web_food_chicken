@@ -132,11 +132,10 @@ test('admin can create, edit and delete product', function () {
         'sauce_selection' => 'fixed',
         'price' => 69000,
         'original_price' => 79000,
-        'tag' => 'MÓN MỚI',
+        'tag' => 'BEST SELLER',
         'subtag' => '🍗 Giòn rụm béo ngậy',
         'description' => 'Mô tả món gà rán sốt phô mai đặc biệt.',
         'is_available' => '1',
-        'is_hot' => '1',
     ]);
 
     $storeResponse->assertRedirect(route('admin.products.index'));
@@ -323,7 +322,7 @@ test('admin can create, update, toggle and delete combos', function () {
         'name' => 'Combo Siêu Gà Tiệc Tùng VIP',
         'price' => 210000,
         'original_price' => 280000,
-        'tag' => 'HOT',
+        'tag' => 'TIẾT KIỆM',
         'subtag' => '🍱 Gói VIP 5 người',
         'items' => [
             ['item_name' => '3 Cơm gà sốt', 'quantity' => 3, 'product_id' => $product->id],
@@ -335,13 +334,25 @@ test('admin can create, update, toggle and delete combos', function () {
     expect((int) $combo->price)->toBe(210000);
     expect($combo->items()->count())->toBe(1);
 
-    // 6. Toggle combo
+    // 6. Update combo price via JSON (Inline price edit)
+    $priceResponse = $this->actingAs($admin)->patchJson(route('admin.combos.update-price', $combo->id), [
+        'price' => 225000,
+    ]);
+    $priceResponse->assertStatus(200)
+        ->assertJson([
+            'success' => true,
+            'price' => 225000,
+        ]);
+    $combo->refresh();
+    expect((int) $combo->price)->toBe(225000);
+
+    // 7. Toggle combo
     $toggleResponse = $this->actingAs($admin)->patch(route('admin.combos.toggle', $combo->id));
     $toggleResponse->assertRedirect();
     $combo->refresh();
     expect($combo->is_active)->toBeFalse();
 
-    // 7. Delete combo
+    // 8. Delete combo
     $deleteResponse = $this->actingAs($admin)->delete(route('admin.combos.destroy', $combo->id));
     $deleteResponse->assertRedirect();
     expect(Combo::where('id', $combo->id)->exists())->toBeFalse();

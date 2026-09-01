@@ -36,6 +36,42 @@ class Combo extends Model
         'order' => 'integer',
     ];
 
+    public function getTagAttribute(?string $value): ?string
+    {
+        if (! $value) {
+            return null;
+        }
+
+        $upper = strtoupper(trim($value));
+        if (in_array($upper, ['BEST SELLER', 'BESTSELLER', 'BÁN CHẠY', 'BÁN CHẠY NHẤT'])) {
+            return 'BEST SELLER';
+        }
+
+        if (in_array($upper, ['TIẾT KIỆM', 'COMBO TIẾT KIỆM', 'SIÊU TIẾT KIỆM'])) {
+            return 'TIẾT KIỆM';
+        }
+
+        return null;
+    }
+
+    public function setTagAttribute(?string $value): void
+    {
+        if (! $value) {
+            $this->attributes['tag'] = null;
+
+            return;
+        }
+
+        $upper = strtoupper(trim($value));
+        if (in_array($upper, ['BEST SELLER', 'BESTSELLER', 'BÁN CHẠY', 'BÁN CHẠY NHẤT'])) {
+            $this->attributes['tag'] = 'BEST SELLER';
+        } elseif (in_array($upper, ['TIẾT KIỆM', 'COMBO TIẾT KIỆM', 'SIÊU TIẾT KIỆM'])) {
+            $this->attributes['tag'] = 'TIẾT KIỆM';
+        } else {
+            $this->attributes['tag'] = null;
+        }
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(ComboItem::class)->orderBy('order');

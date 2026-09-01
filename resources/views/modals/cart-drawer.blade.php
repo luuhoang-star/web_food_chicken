@@ -50,7 +50,7 @@
             <!-- Free Ship Notification Bar -->
             @php
                 $freeshipLimit = (int) ($settings['freeship_threshold'] ?? 100000);
-                $defaultShipping = (int) ($settings['shipping_fee_default'] ?? 15000);
+                $defaultShipping = (int) ($settings['shipping_base_fee'] ?? ($settings['shipping_fee_default'] ?? 15000));
             @endphp
             <div class="bg-white px-5 py-3 border-b border-orange-100/70 shrink-0">
                 <div class="flex items-center gap-2 text-xs font-black text-gray-800">

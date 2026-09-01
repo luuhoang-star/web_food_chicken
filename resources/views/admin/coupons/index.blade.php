@@ -44,6 +44,7 @@
             'is_expiring_soon' => $c->expires_at ? ($c->expires_at->diffInDays(now()) <= 7 && $c->expires_at->isFuture()) : false,
             'is_out_of_usage' => $c->usage_limit ? ($c->used_count >= $c->usage_limit) : false,
             'is_almost_out_usage' => $c->usage_limit ? (($c->used_count / $c->usage_limit) >= 0.8 && $c->used_count < $c->usage_limit) : false,
+            'is_loading' => false
         ])) }},
 
         showToast(msg) {
@@ -121,25 +122,26 @@
 
         getStatusBadge(c) {
             if (!c.is_active) {
-                return { label: '⚫ Đã tắt', class: 'bg-gray-100 text-gray-600 border-gray-200' };
+                return { label: 'Tạm dừng', class: 'bg-gray-100 text-gray-500 border-gray-200' };
             }
             if (c.is_expired) {
-                return { label: '⚪ Hết hạn', class: 'bg-gray-100 text-gray-500 border-gray-200' };
+                return { label: 'Hết hạn', class: 'bg-rose-50 text-rose-600 border-rose-200' };
             }
             if (c.is_out_of_usage) {
-                return { label: '🔴 Hết lượt', class: 'bg-rose-100 text-rose-800 border-rose-200' };
+                return { label: 'Hết lượt', class: 'bg-rose-50 text-rose-600 border-rose-200' };
             }
             if (c.is_almost_out_usage) {
-                return { label: '🟡 Sắp hết lượt', class: 'bg-amber-100 text-amber-800 border-amber-200' };
+                return { label: 'Sắp hết lượt', class: 'bg-amber-50 text-amber-800 border-amber-200' };
             }
             if (c.is_expiring_soon) {
-                return { label: '🟡 Sắp hết hạn', class: 'bg-amber-100 text-amber-800 border-amber-200' };
+                return { label: 'Sắp hết hạn', class: 'bg-amber-50 text-amber-800 border-amber-200' };
             }
-            return { label: '🟢 Đang hoạt động', class: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+            return { label: 'Đang áp dụng', class: 'bg-emerald-50 text-emerald-800 border-emerald-200' };
         },
 
         async toggleStatus(c) {
             this.activeMenuId = null;
+            c.is_loading = true;
             try {
                 const res = await fetch(`/admin/coupons/${c.id}/toggle`, {
                     method: 'PATCH',
@@ -156,6 +158,8 @@
                 }
             } catch (e) {
                 alert('Không thể đổi trạng thái voucher.');
+            } finally {
+                c.is_loading = false;
             }
         },
 
@@ -301,7 +305,7 @@
                 type="button" 
                 x-show="searchQuery" 
                 @click="searchQuery = ''" 
-                class="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600 font-bold"
+                class="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600 font-bold cursor-pointer"
                 x-cloak
             >
                 ✕
@@ -346,13 +350,13 @@
                         <th class="px-4 py-3.5">Đơn Tối Thiểu</th>
                         <th class="px-4 py-3.5">Đã Dùng</th>
                         <th class="px-4 py-3.5">Hạn Sử Dụng</th>
-                        <th class="px-4 py-3.5">Trạng Thái</th>
+                        <th class="px-4 py-3.5 text-center w-36">Trạng Thái</th>
                         <th class="px-4 py-3.5 text-right w-20">Thao Tác</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 font-medium text-gray-700">
                     <template x-for="c in filteredCoupons()" :key="c.id">
-                        <tr class="hover:bg-gray-50/60 transition-colors">
+                        <tr class="hover:bg-gray-50/60 transition-colors" :class="!c.is_active || c.is_expired || c.is_out_of_usage ? 'opacity-70 bg-gray-50/30' : ''">
                             
                             <!-- 1. Mã Code (Click để copy) + Tên chương trình -->
                             <td class="px-4 py-3 whitespace-nowrap">
@@ -366,7 +370,7 @@
                                         <span x-text="c.code"></span>
                                         <span class="text-[10px] opacity-40 group-hover:opacity-100">📋</span>
                                     </button>
-                                    <span class="block text-gray-700 text-xs font-semibold max-w-[200px] truncate" :title="c.name" x-text="c.name"></span>
+                                    <span class="block text-gray-700 text-xs font-semibold max-w-[220px] truncate" :title="c.name" x-text="c.name"></span>
                                 </div>
                             </td>
 
@@ -400,19 +404,33 @@
                                 <span class="font-mono text-gray-700" :class="c.is_expired ? 'text-gray-400 line-through' : (c.is_expiring_soon ? 'text-amber-700 font-bold' : '')" x-text="c.expires_display"></span>
                             </td>
 
-                            <!-- 6. Trạng Thái -->
-                            <td class="px-4 py-3 whitespace-nowrap">
-                                <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold border" :class="getStatusBadge(c).class" x-text="getStatusBadge(c).label"></span>
+                            <!-- 6. Trạng Thái (1-CLICK TOGGLE BUTTON TRỰC TIẾP) -->
+                            <td class="px-4 py-3 whitespace-nowrap text-center">
+                                <button 
+                                    type="button" 
+                                    @click="toggleStatus(c)"
+                                    :disabled="c.is_loading"
+                                    title="Click để Bật / Tạm dừng mã voucher này"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all cursor-pointer shadow-2xs border"
+                                    :class="c.is_active 
+                                        ? (c.is_expired || c.is_out_of_usage ? 'bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-emerald-200') 
+                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-600 border-gray-200'"
+                                >
+                                    <span class="w-2 h-2 rounded-full" :class="c.is_active ? (c.is_expired || c.is_out_of_usage ? 'bg-rose-500' : 'bg-emerald-600 animate-pulse') : 'bg-gray-400'"></span>
+                                    <span x-text="getStatusBadge(c).label"></span>
+                                </button>
                             </td>
 
-                            <!-- 7. Thao Tác (Menu ⋮) -->
+                            <!-- 7. Thao Tác (Sửa + Menu ⋮) -->
                             <td class="px-4 py-3 whitespace-nowrap text-right relative" @click.stop>
-                                <div class="inline-flex items-center gap-1">
+                                <div class="inline-flex items-center justify-end gap-1">
+                                    
+                                    <!-- Nút Sửa -->
                                     <button 
                                         type="button" 
                                         @click="openEditDrawer(c)"
-                                        class="px-2 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs transition-colors cursor-pointer"
-                                        title="Chỉnh sửa"
+                                        class="p-1.5 rounded-lg bg-gray-50 hover:bg-gray-200 text-gray-700 font-bold text-xs transition-colors cursor-pointer"
+                                        title="Chỉnh sửa voucher"
                                     >
                                         ✏️
                                     </button>
@@ -570,7 +588,7 @@
                                         name="code" 
                                         x-model="formCode"
                                         @input="formCode = formCode.toUpperCase().replace(/\s+/g, '')"
-                                        placeholder="VD: GAO20K, FREESHIP50..." 
+                                        placeholder="VD: FREESHIP15, CHICKEN20..." 
                                         required
                                         class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs font-black text-red-600 uppercase tracking-wider focus:border-red-500 outline-none font-mono"
                                     >
@@ -583,7 +601,7 @@
                                         type="text" 
                                         name="name" 
                                         x-model="formName"
-                                        placeholder="VD: Giảm 20k cho đơn từ 100k..." 
+                                        placeholder="VD: Giảm 20k cho đơn từ 120k..." 
                                         required
                                         class="w-full px-3.5 py-2.5 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-900 focus:border-red-500 outline-none"
                                     >
@@ -620,7 +638,7 @@
                                                 required
                                                 min="1"
                                                 :max="formType === 'percent' ? 100 : null"
-                                                class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-black text-gray-900 outline-none text-right pr-7"
+                                                class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-black text-gray-900 outline-none text-right pr-7 font-mono"
                                             >
                                             <span class="absolute right-2.5 top-2 text-xs font-bold text-gray-400" x-text="formType === 'fixed' ? 'đ' : '%'">đ</span>
                                         </div>
@@ -636,7 +654,7 @@
                                         x-model="formMaxDiscount"
                                         placeholder="50000" 
                                         step="1000"
-                                        class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-900 outline-none text-right"
+                                        class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-900 outline-none text-right font-mono"
                                     >
                                 </div>
                             </div>
@@ -656,7 +674,7 @@
                                             placeholder="0" 
                                             step="1000"
                                             min="0"
-                                            class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-900 outline-none text-right"
+                                            class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-900 outline-none text-right font-mono"
                                         >
                                     </div>
 
@@ -669,7 +687,7 @@
                                             x-model="formUsageLimit"
                                             placeholder="Không giới hạn" 
                                             min="1"
-                                            class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-900 outline-none text-right"
+                                            class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-900 outline-none text-right font-mono"
                                         >
                                     </div>
                                 </div>
@@ -682,7 +700,7 @@
                                         name="expires_at" 
                                         x-model="formExpiresAt"
                                         min="{{ date('Y-m-d') }}"
-                                        class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-900 outline-none"
+                                        class="w-full px-3 py-2 rounded-xl bg-white border border-gray-200 text-xs font-bold text-gray-900 outline-none font-mono"
                                     >
                                 </div>
                             </div>

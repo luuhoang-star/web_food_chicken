@@ -56,8 +56,10 @@
         <div class="absolute left-full ml-3 hidden md:group-hover:flex items-center pointer-events-none z-20">
             <span class="bg-gray-900/95 text-white text-xs font-bold px-3.5 py-1.5 rounded-xl whitespace-nowrap shadow-xl border border-gray-700/80 flex items-center gap-2">
                 <span class="w-2 h-2 rounded-full bg-[#0068FF] animate-pulse"></span>
-                <span>Chat Zalo:</span>
-                <span class="text-blue-400 font-mono font-black">0973.797.151</span>
+                <span>Chat Zalo</span>
+                @if(!empty($settings['hotline']))
+                    <span class="text-blue-400 font-mono font-black">{{ $settings['hotline'] }}</span>
+                @endif
             </span>
         </div>
     </div>

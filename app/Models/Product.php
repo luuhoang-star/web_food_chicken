@@ -44,11 +44,38 @@ class Product extends Model
 
     public function getTagAttribute(?string $value): ?string
     {
-        if ($value === 'MỚI' || in_array($value, ['MÓN HOT', 'ĐƯỢC YÊU THÍCH', 'BÁN CHẠY', 'BÁN CHẠY NHẤT', 'THANH MÁT', 'THANH VỊ', 'ĂN VẶT'])) {
+        if (! $value) {
             return null;
         }
 
-        return $value;
+        $upper = strtoupper(trim($value));
+        if (in_array($upper, ['BEST SELLER', 'BESTSELLER', 'BÁN CHẠY', 'BÁN CHẠY NHẤT'])) {
+            return 'BEST SELLER';
+        }
+
+        if (in_array($upper, ['TIẾT KIỆM', 'COMBO TIẾT KIỆM', 'SIÊU TIẾT KIỆM'])) {
+            return 'TIẾT KIỆM';
+        }
+
+        return null;
+    }
+
+    public function setTagAttribute(?string $value): void
+    {
+        if (! $value) {
+            $this->attributes['tag'] = null;
+
+            return;
+        }
+
+        $upper = strtoupper(trim($value));
+        if (in_array($upper, ['BEST SELLER', 'BESTSELLER', 'BÁN CHẠY', 'BÁN CHẠY NHẤT'])) {
+            $this->attributes['tag'] = 'BEST SELLER';
+        } elseif (in_array($upper, ['TIẾT KIỆM', 'COMBO TIẾT KIỆM', 'SIÊU TIẾT KIỆM'])) {
+            $this->attributes['tag'] = 'TIẾT KIỆM';
+        } else {
+            $this->attributes['tag'] = null;
+        }
     }
 
     public function category(): BelongsTo
@@ -116,6 +143,19 @@ class Product extends Model
     public function scopeHot($query)
     {
         return $query->where('is_hot', true);
+    }
+
+    public function scopeBestSeller($query, int $limit = 8)
+    {
+        return $query->available()
+            ->withSum(['orderItems as sold_count' => function ($q) {
+                $q->whereHas('order', fn ($o) => $o->where('order_status', '!=', 'cancelled'));
+            }], 'quantity')
+            ->orderByRaw('CASE WHEN tag = "BEST SELLER" THEN 1 ELSE 0 END DESC')
+            ->orderByRaw('COALESCE(sold_count, 0) DESC')
+            ->orderBy('order')
+            ->orderBy('id')
+            ->limit($limit);
     }
 
     public function scopeCombos($query)

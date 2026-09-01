@@ -189,9 +189,13 @@
                                         <span class="text-gray-500">Người nhận:</span>
                                         <span class="font-bold text-gray-900">{{ $activeOrder->customer_name }}</span>
                                     </div>
+                                    @php
+                                        $rawPhone = (string) $activeOrder->customer_phone;
+                                        $maskedPhone = strlen($rawPhone) >= 7 ? substr($rawPhone, 0, 3) . '****' . substr($rawPhone, -3) : $rawPhone;
+                                    @endphp
                                     <div class="flex justify-between">
                                         <span class="text-gray-500">Số điện thoại:</span>
-                                        <span class="font-bold text-red-600 font-mono">{{ $activeOrder->customer_phone }}</span>
+                                        <span class="font-bold text-red-600 font-mono">{{ $maskedPhone }}</span>
                                     </div>
                                     <div class="flex justify-between">
                                         <span class="text-gray-500">Khu vực:</span>

@@ -21,7 +21,7 @@ class HomeController extends Controller
         return view('pages.home', [
             'hero' => Schema::hasTable('heroes') ? Hero::active()->ordered()->first() : null,
             'featuredSauces' => Schema::hasTable('sauces') ? Sauce::active()->available()->orderBy('id')->limit(4)->get() : collect(),
-            'popularProducts' => Schema::hasTable('products') ? Product::with(['category', 'sauce', 'sauces'])->available()->hot()->orderBy('order')->limit(8)->get() : collect(),
+            'popularProducts' => Schema::hasTable('products') ? Product::with(['category', 'sauce', 'sauces'])->bestSeller(8)->get() : collect(),
             'combos' => Schema::hasTable('combos') ? Combo::with('items.product')->active()->ordered()->limit(3)->get() : collect(),
             'benefits' => Schema::hasTable('benefits') ? Benefit::active()->ordered()->get() : collect(),
             'testimonials' => Schema::hasTable('testimonials') ? Testimonial::active()->ordered()->get() : collect(),

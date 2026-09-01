@@ -13,9 +13,29 @@
         couponSuccess: '',
         isApplyingCoupon: false,
 
+        copiedField: '',
+        copyText(text, fieldName) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text);
+            } else {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                textarea.style.position = 'fixed';
+                textarea.style.opacity = '0';
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+            }
+            this.copiedField = fieldName;
+            setTimeout(() => {
+                if (this.copiedField === fieldName) this.copiedField = '';
+            }, 2000);
+        },
+
         getShippingFee() {
             const threshold = Number('{{ (int) ($settings['freeship_threshold'] ?? 100000) }}');
-            const defaultFee = Number('{{ (int) ($settings['shipping_fee_default'] ?? 15000) }}');
+            const defaultFee = Number('{{ (int) ($settings['shipping_base_fee'] ?? ($settings['shipping_fee_default'] ?? 15000)) }}');
             return (this.totalPrice >= threshold) ? 0 : defaultFee;
         },
 
@@ -306,35 +326,68 @@
                         class="p-4 bg-white rounded-2xl border border-red-200 space-y-3 shadow-xs"
                     >
                         <div class="flex items-center justify-between text-xs font-black text-red-600">
-                            <span>⚡ Quét mã QR thanh toán nhanh</span>
-                            <span>{{ $settings['bank_name'] ?? 'MB Bank' }}</span>
+                            <span class="flex items-center gap-1.5">
+                                <span>⚡</span>
+                                <span>Quét mã QR thanh toán nhanh</span>
+                            </span>
+                            <span class="text-gray-700 bg-gray-100 px-2 py-0.5 rounded-md font-bold text-[11px]">{{ $settings['bank_name'] ?? 'Vietcombank' }}</span>
                         </div>
+
                         <div class="flex flex-col sm:flex-row items-center gap-4">
-                            <div class="w-32 h-32 p-1.5 bg-white border border-gray-200 rounded-xl shadow-xs shrink-0">
+                            <!-- Mã QR to rõ sắc nét -->
+                            <div class="w-36 h-36 sm:w-40 sm:h-40 p-1.5 bg-white border border-gray-200 rounded-2xl shadow-sm shrink-0 flex items-center justify-center">
                                 <img 
-                                    :src="'https://img.vietqr.io/image/{{ $settings['bank_code'] ?? 'MB' }}-{{ $settings['bank_account_number'] ?? '0988888888' }}-compact2.png?amount=' + getFinalTotal() + '&addInfo=GAO%20' + encodeURIComponent(checkoutForm.phone || 'DONHANG') + '&accountName={{ urlencode($settings['bank_account_holder'] ?? 'GAO CHICKEN HA NOI') }}'" 
+                                    :src="'https://img.vietqr.io/image/{{ $settings['bank_code'] ?? 'MB' }}-{{ $settings['bank_account_number'] ?? '0988888888' }}-compact2.png?amount=' + getFinalTotal() + '&addInfo={{ urlencode($settings['bank_transfer_prefix'] ?? 'HUBBY') }}%20' + encodeURIComponent(checkoutForm.phone || 'DONHANG') + '&accountName={{ urlencode($settings['bank_account_holder'] ?? 'GAO CHICKEN HA NOI') }}'" 
                                     alt="VietQR Code" 
-                                    class="w-full h-full object-contain"
+                                    class="w-full h-full object-contain rounded-xl"
                                 >
                             </div>
-                            <div class="space-y-1.5 text-xs flex-1 w-full">
-                                <div class="flex justify-between border-b border-gray-100 pb-1">
-                                    <span class="text-gray-500">Ngân hàng:</span>
-                                    <span class="font-black text-gray-900">{{ $settings['bank_name'] ?? 'MB Bank' }}</span>
+
+                            <!-- Thông tin chuyển khoản + Nút sao chép 1 chạm -->
+                            <div class="space-y-2 text-xs flex-1 w-full">
+                                <div class="flex items-center justify-between border-b border-gray-100 pb-1.5">
+                                    <span class="text-gray-500">Số tiền:</span>
+                                    <span class="font-black text-red-600 text-sm" x-text="formatCurrency(getFinalTotal())">0đ</span>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-100 pb-1">
+                                <div class="flex items-center justify-between border-b border-gray-100 pb-1.5">
                                     <span class="text-gray-500">Số tài khoản:</span>
-                                    <span class="font-black text-red-600 tracking-wider">{{ $settings['bank_account_number'] ?? '0988 888 888' }}</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-mono font-black text-gray-900 tracking-wider">{{ $settings['bank_account_number'] ?? '0988 888 888' }}</span>
+                                        <button 
+                                            type="button" 
+                                            @click="copyText('{{ $settings['bank_account_number'] ?? '0988888888' }}', 'stk')"
+                                            class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all flex items-center gap-1 cursor-pointer"
+                                            title="Sao chép số tài khoản"
+                                        >
+                                            <span x-text="copiedField === 'stk' ? '✓ Đã chép' : '📋 Sao chép'"></span>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="flex justify-between border-b border-gray-100 pb-1">
+                                <div class="flex items-center justify-between border-b border-gray-100 pb-1.5">
                                     <span class="text-gray-500">Chủ tài khoản:</span>
                                     <span class="font-bold text-gray-900 uppercase">{{ $settings['bank_account_holder'] ?? 'GAO CHICKEN HA NOI' }}</span>
                                 </div>
-                                <div class="flex justify-between">
+                                <div class="flex items-center justify-between">
                                     <span class="text-gray-500">Nội dung CK:</span>
-                                    <span class="font-black text-gray-900" x-text="'GAO ' + (checkoutForm.phone || 'DONHANG')">GAO 0912345678</span>
+                                    <div class="flex items-center gap-1.5">
+                                        <span class="font-black text-blue-700" x-text="'{{ $settings['bank_transfer_prefix'] ?? 'HUBBY' }} ' + (checkoutForm.phone || 'DONHANG')">HUBBY 0912345678</span>
+                                        <button 
+                                            type="button" 
+                                            @click="copyText('{{ $settings['bank_transfer_prefix'] ?? 'HUBBY' }} ' + (checkoutForm.phone || 'DONHANG'), 'memo')"
+                                            class="px-2 py-0.5 text-[10px] font-bold rounded-md bg-gray-100 hover:bg-gray-200 text-gray-700 transition-all flex items-center gap-1 cursor-pointer"
+                                            title="Sao chép nội dung chuyển khoản"
+                                        >
+                                            <span x-text="copiedField === 'memo' ? '✓ Đã chép' : '📋 Sao chép'"></span>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Chú thích hỗ trợ khi dùng điện thoại -->
+                        <div class="text-[11px] text-gray-500 bg-amber-50/80 border border-amber-200/60 p-2 rounded-xl flex items-center gap-2">
+                            <span>💡</span>
+                            <span>Nếu đặt bằng điện thoại, bạn có thể bấm <b>📋 Sao chép</b> STK & Nội dung rồi dán vào app ngân hàng để chuyển khoản nhanh!</span>
                         </div>
                     </div>
                 </div>
@@ -403,6 +456,12 @@
                         </button>
                     </div>
                 @else
+                    @if(!empty($settings['rush_hour_note']))
+                        <div class="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[11px] font-medium text-amber-800 flex items-center gap-1.5">
+                            <span>⏰</span>
+                            <span>{{ $settings['rush_hour_note'] }}</span>
+                        </div>
+                    @endif
                     <button 
                         @click="submitOrder()" 
                         type="button" 

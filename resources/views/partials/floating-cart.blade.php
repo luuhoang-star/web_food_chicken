@@ -1,6 +1,6 @@
 <!-- FLOATING CART PILL (DESKTOP & TABLET QUICK CHECKOUT TRIGGER) -->
 <div 
-    x-show="totalItemsCount > 0 && !isCartOpen && !isCheckoutOpen" 
+    x-show="totalItemsCount > 0 && !isCartOpen && !openCheckoutModal" 
     x-transition:enter="transition ease-out duration-300 transform"
     x-transition:enter-start="translate-y-12 opacity-0 scale-90"
     x-transition:enter-end="translate-y-0 opacity-100 scale-100"

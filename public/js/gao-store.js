@@ -19,7 +19,7 @@ function gaoApp() {
         : (initialData.products || []);
 
     const totalProductCount = rawProducts.length;
-    const popularCount = rawProducts.filter(p => p.is_hot).length;
+    const popularCount = rawProducts.filter(p => (p.tag === 'BEST SELLER' || (Number(p.sold_count) || 0) > 0)).length || Math.min(8, totalProductCount);
     const allCategories = [
         { id: 'all', name: 'Tất Cả', icon: '✨', count: totalProductCount },
         { id: 'popular', name: 'Bán Chạy', icon: '🔥', count: popularCount },
@@ -78,9 +78,26 @@ function gaoApp() {
             original_price: p.original_price ? Number(p.original_price) : null,
             sauce: matchedSauce ? matchedSauce.name : (p.default_sauce || (hasSauce && sauceSelection === 'fixed' ? 'Sốt Cay Hàn' : null)),
             image: p.image || '',
-            is_hot: p.is_hot || false
+            sold_count: Number(p.sold_count) || 0,
+            order: Number(p.order) || 99
         };
     });
+
+    const getSortedPopularProducts = (products) => {
+        return [...products].sort((a, b) => {
+            const aTagScore = a.tag === 'BEST SELLER' ? 1 : 0;
+            const bTagScore = b.tag === 'BEST SELLER' ? 1 : 0;
+            if (bTagScore !== aTagScore) {
+                return bTagScore - aTagScore;
+            }
+            const aSold = a.sold_count || 0;
+            const bSold = b.sold_count || 0;
+            if (bSold !== aSold) {
+                return bSold - aSold;
+            }
+            return (a.order || 0) - (b.order || 0);
+        });
+    };
 
     const dbSpiceLevels = (initialData.spiceLevels || []).map(sp => ({
         id: 'spice-' + sp.id,
@@ -119,6 +136,7 @@ function gaoApp() {
         isCartOpen: false,
         openCustomizeModal: false,
         openCheckoutModal: false,
+        isCheckoutOpen: false,
         openSuccessModal: false,
         isSubmitting: false,
         
@@ -217,7 +235,9 @@ function gaoApp() {
         get filteredMenuItems() {
             let items = this.allMenuItems;
             if (this.activeCategory === 'popular') {
-                items = items.filter(item => item.is_hot);
+                const sorted = getSortedPopularProducts(this.allMenuItems);
+                const populars = sorted.filter(i => (i.tag === 'BEST SELLER' || (i.sold_count && i.sold_count > 0)));
+                items = populars.length > 0 ? populars : sorted.slice(0, 8);
             } else if (this.activeCategory !== 'all') {
                 items = items.filter(item => item.category === this.activeCategory);
             }
@@ -229,7 +249,12 @@ function gaoApp() {
         },
 
         get popularItems() {
-            return this.allMenuItems.filter(i => i.is_hot);
+            const sorted = getSortedPopularProducts(this.allMenuItems);
+            const populars = sorted.filter(i => (i.tag === 'BEST SELLER' || (i.sold_count && i.sold_count > 0)));
+            if (populars.length >= 4) {
+                return populars.slice(0, 8);
+            }
+            return sorted.slice(0, 8);
         },
 
         get totalItemsCount() {
@@ -571,6 +596,7 @@ function gaoApp() {
             }
             this.isCartOpen = false;
             this.openCheckoutModal = true;
+            this.isCheckoutOpen = true;
         },
 
         // Submit Order logic - Sends distinct item_type (product, sauce, combo) to API
