@@ -214,7 +214,7 @@
         <span x-text="copyToast"></span>
     </div>
 
-    <!-- 1. BỘ LỌC THỜI GIAN TINH GỌN (Hôm nay | 7 ngày | 30 ngày | Tháng này | Tùy chỉnh) -->
+    <!-- 1. BỘ LỌC THỜI GIAN TINH GỌN (Pill Tabs Hiện Đại) -->
     <div class="bg-white p-3 sm:p-4 rounded-2xl border border-gray-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
         
         <!-- Filter Tabs -->
@@ -283,109 +283,154 @@
         </form>
     </div>
 
-    <!-- 2. 4 KPI CARDS CHÍNH -->
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <!-- 2. 4 THẺ KPI CHỈ SỐ CAO CẤP (TINH GỌN, CÂN ĐỐI, PHÂN BIỆT RÕ RÀNG) -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         
-        <!-- CARD 1: DOANH THU HÔM NAY / KỲ NÀY -->
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-xs flex flex-col justify-between">
-            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">
-                Doanh thu {{ $range === 'today' ? 'hôm nay' : 'kỳ này' }}
-            </span>
-            <div class="my-2">
-                <span class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight block">
-                    {{ number_format($periodRevenue, 0, ',', '.') }} ₫
+        <!-- CARD 1: DOANH THU THỰC NHẬN -->
+        <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-gray-300 transition-all flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Doanh thu {{ $range === 'today' ? 'hôm nay' : 'kỳ này' }}
                 </span>
+                <div class="w-8 h-8 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-sm font-bold shadow-2xs">
+                    💰
+                </div>
             </div>
             <div>
+                <span class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight block">
+                    {{ number_format($periodRevenue, 0, ',', '.') }} <span class="text-lg font-bold text-gray-500">₫</span>
+                </span>
+            </div>
+            <div class="pt-1 border-t border-gray-100 flex items-center justify-between text-[11px]">
                 @if($revenueGrowthPercent !== null)
-                    <span class="text-xs font-bold {{ $revenueGrowthPercent >= 0 ? 'text-emerald-600' : 'text-rose-600' }}">
-                        {{ $revenueGrowthPercent >= 0 ? '↑' : '↓' }} {{ abs($revenueGrowthPercent) }}% so với {{ $compareLabel }}
+                    <span class="font-bold flex items-center gap-1 {{ $revenueGrowthPercent >= 0 ? 'text-emerald-600' : 'text-rose-600' }}">
+                        <span>{{ $revenueGrowthPercent >= 0 ? '↗' : '↘' }}</span>
+                        <span>{{ abs($revenueGrowthPercent) }}% so với {{ $compareLabel }}</span>
                     </span>
                 @else
-                    <span class="text-xs text-gray-400 font-medium">Doanh thu thực nhận</span>
+                    <span class="text-gray-400 font-medium">Doanh thu thực tế</span>
                 @endif
+                <span class="text-gray-400 font-mono">{{ $range === 'today' ? 'Realtime' : 'Tổng kết' }}</span>
             </div>
         </div>
 
-        <!-- CARD 2: ĐƠN HÔM NAY / KỲ NÀY -->
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-xs flex flex-col justify-between">
-            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">
-                Đơn {{ $range === 'today' ? 'hôm nay' : 'kỳ này' }}
-            </span>
-            <div class="my-2">
-                <span class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight block">
-                    {{ $periodOrdersCount }} đơn
-                </span>
-            </div>
-            <div>
-                <span class="text-xs text-gray-500 font-medium">
-                    <strong class="text-emerald-700 font-bold">{{ $completedOrdersCount }} hoàn thành</strong> · {{ $cancelledOrdersCount }} huỷ
-                </span>
-            </div>
-        </div>
-
-        <!-- CARD 3: ĐƠN CẦN XỬ LÝ (NỔI BẬT NHẤT) -->
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border-2 shadow-xs flex flex-col justify-between" :class="pendingCount > 0 ? 'border-red-500 bg-red-50/30' : 'border-gray-200/80'">
+        <!-- CARD 2: TỔNG SỐ ĐƠN HÀNG -->
+        <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-gray-300 transition-all flex flex-col justify-between space-y-3">
             <div class="flex items-center justify-between">
-                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">
-                    Đơn cần xử lý
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Tổng đơn {{ $range === 'today' ? 'hôm nay' : 'kỳ này' }}
                 </span>
-                <span x-show="pendingCount > 0" class="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></span>
-            </div>
-            <div class="my-2">
-                <span class="text-2xl sm:text-3xl font-black tracking-tight block" :class="pendingCount > 0 ? 'text-red-600' : 'text-gray-900'" x-text="pendingCount + ' đơn'">
-                </span>
+                <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm font-bold shadow-2xs">
+                    📦
+                </div>
             </div>
             <div>
+                <span class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight block">
+                    {{ $periodOrdersCount }} <span class="text-lg font-bold text-gray-500">đơn</span>
+                </span>
+            </div>
+            <div class="pt-1 border-t border-gray-100 flex items-center justify-between text-[11px]">
+                <span class="font-medium text-gray-600">
+                    <strong class="text-emerald-600 font-bold">{{ $completedOrdersCount }}</strong> xong · <span class="text-gray-400">{{ $cancelledOrdersCount }} huỷ</span>
+                </span>
+                <span class="text-gray-400">
+                    {{ $todayStats['dishes_count'] ?? 0 }} suất món
+                </span>
+            </div>
+        </div>
+
+        <!-- CARD 3: ĐƠN CẦN XỬ LÝ (ACTIONABLE PRIORITY) -->
+        <div 
+            class="bg-white p-5 rounded-2xl border-2 shadow-xs transition-all flex flex-col justify-between space-y-3"
+            :class="pendingCount > 0 ? 'border-red-500/80 bg-gradient-to-br from-red-50/40 to-white ring-2 ring-red-500/10' : 'border-gray-200/80'"
+        >
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Đơn cần xử lý ngay
+                </span>
+                <div class="relative">
+                    <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-sm font-bold shadow-2xs">
+                        ⚡
+                    </div>
+                    <span x-show="pendingCount > 0" class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-600 animate-ping"></span>
+                </div>
+            </div>
+            <div>
+                <span 
+                    class="text-2xl sm:text-3xl font-black tracking-tight block"
+                    :class="pendingCount > 0 ? 'text-red-600' : 'text-gray-900'"
+                    x-text="pendingCount + ' đơn'"
+                >
+                    {{ $pendingOrdersCount }} đơn
+                </span>
+            </div>
+            <div class="pt-1 border-t border-gray-100 flex items-center justify-between text-[11px]">
                 <template x-if="pendingCount > 0">
-                    <a href="#urgent-queue" class="text-xs font-black text-red-600 hover:text-red-700 flex items-center gap-1 transition-transform hover:translate-x-0.5">
+                    <a href="#urgent-queue" class="font-black text-red-600 hover:text-red-700 flex items-center gap-1">
                         <span>Xử lý ngay</span>
                         <span>→</span>
                     </a>
                 </template>
                 <template x-if="pendingCount === 0">
-                    <span class="text-xs text-emerald-600 font-bold">✓ Bếp đã hết đơn chờ</span>
+                    <span class="text-emerald-600 font-bold flex items-center gap-1">
+                        <span>✓</span>
+                        <span>Bếp đã hết đơn chờ</span>
+                    </span>
                 </template>
+                <span class="text-gray-400">Ưu tiên số 1</span>
             </div>
         </div>
 
-        <!-- CARD 4: GIÁ TRỊ ĐƠN TB (AOV) -->
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-xs flex flex-col justify-between">
-            <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block">
-                Giá trị đơn TB
-            </span>
-            <div class="my-2">
-                <span class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight block">
-                    {{ number_format($avgOrderValue, 0, ',', '.') }} ₫
+        <!-- CARD 4: GIÁ TRỊ ĐƠN TB & TỶ LỆ HOÀN THÀNH -->
+        <div class="bg-white p-5 rounded-2xl border border-gray-200/80 shadow-xs hover:border-gray-300 transition-all flex flex-col justify-between space-y-3">
+            <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                    Giá trị TB / Đơn (AOV)
                 </span>
+                <div class="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-sm font-bold shadow-2xs">
+                    🎯
+                </div>
             </div>
             <div>
-                <span class="text-xs text-gray-500 font-medium">Trung bình trên mỗi đơn</span>
+                <span class="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight block">
+                    {{ number_format($avgOrderValue, 0, ',', '.') }} <span class="text-lg font-bold text-gray-500">₫</span>
+                </span>
+            </div>
+            <div class="pt-1 border-t border-gray-100 flex items-center justify-between text-[11px]">
+                <span class="text-gray-500 font-medium">
+                    @php
+                        $rate = ($periodOrdersCount > 0) ? round(($completedOrdersCount / $periodOrdersCount) * 100) : 100;
+                    @endphp
+                    <strong class="text-gray-900 font-bold">{{ $rate }}%</strong> giao thành công
+                </span>
+                <span class="text-gray-400">Hiệu suất</span>
             </div>
         </div>
 
     </div>
 
-    <!-- 3. KHU VỰC QUAN TRỌNG NHẤT: 🔴 CẦN XỬ LÝ NGAY (AJAX 1-CHẠM) -->
-    <div id="urgent-queue" class="bg-white rounded-2xl border-2 {{ $actionableOrders->isNotEmpty() ? 'border-amber-400 bg-amber-50/10' : 'border-gray-200/80' }} p-4 sm:p-5 shadow-xs space-y-4">
+    <!-- 3. KHU VỰC QUAN TRỌNG: 🔴 ĐƠN CẦN XỬ LÝ NGAY (GỌN GÀNG, KHÔNG RỐI MẮT) -->
+    <div id="urgent-queue" class="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-4 sm:p-5 space-y-4">
         
         <div class="flex items-center justify-between border-b border-gray-100 pb-3">
             <div class="flex items-center gap-2.5">
-                <h2 class="text-base sm:text-lg font-black text-gray-900 flex items-center gap-2">
-                    <span>🔴 Cần xử lý ngay</span>
-                    <span class="px-2 py-0.5 rounded-full text-xs font-black" :class="pendingCount > 0 ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-600'" x-text="pendingCount + ' đơn'">
+                <h2 class="text-sm sm:text-base font-black text-gray-900 flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block animate-pulse"></span>
+                    <span>Đơn hàng đang chờ xử lý</span>
+                    <span class="px-2 py-0.5 rounded-full text-xs font-black" :class="pendingCount > 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'" x-text="pendingCount + ' đơn'">
                     </span>
                 </h2>
             </div>
 
-            <a href="{{ route('admin.orders.index') }}" class="text-xs font-bold text-red-600 hover:text-red-700 transition-colors">
-                Xem toàn bộ đơn →
+            <a href="{{ route('admin.orders.index') }}" class="text-xs font-bold text-red-600 hover:text-red-700 transition-colors flex items-center gap-1">
+                <span>Xem toàn bộ đơn</span>
+                <span>→</span>
             </a>
         </div>
 
         @if($actionableOrders->isNotEmpty())
             <!-- Grid các đơn cần hành động ngay lập tức -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 @foreach($actionableOrders as $order)
                     @php
                         $itemsTxt = $order->items->map(fn($i) => $i->product_name . ' × ' . $i->quantity)->implode(', ');
@@ -417,11 +462,11 @@
                         ];
                     @endphp
                     <div 
-                        class="p-4 rounded-2xl border border-gray-200 bg-white hover:border-gray-300 transition-all space-y-3 flex flex-col justify-between shadow-2xs"
+                        class="p-4 rounded-2xl border border-gray-200/90 bg-gray-50/40 hover:bg-white hover:border-gray-300 transition-all space-y-3 flex flex-col justify-between shadow-2xs"
                         x-show="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') !== 'completed' && (orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') !== 'cancelled'"
                     >
                         
-                        <div class="space-y-1.5">
+                        <div class="space-y-2">
                             <!-- Top: Mã đơn & Trạng thái -->
                             <div class="flex items-center justify-between">
                                 <span class="font-mono font-black text-xs text-gray-900 block">
@@ -435,7 +480,7 @@
                                 </span>
                             </div>
 
-                            <!-- Khách hàng & SĐT & Địa chỉ giao rõ nét -->
+                            <!-- Khách hàng & SĐT & Địa chỉ -->
                             <div class="text-xs space-y-1">
                                 <div class="flex items-center justify-between">
                                     <strong class="text-gray-900 font-black text-xs uppercase">{{ $order->customer_name }}</strong>
@@ -443,7 +488,7 @@
                                         📞 {{ $order->customer_phone }}
                                     </a>
                                 </div>
-                                <div class="text-[11px] text-gray-700 bg-gray-50 p-2 rounded-xl border border-gray-100 font-medium leading-tight">
+                                <div class="text-[11px] text-gray-700 bg-white p-2 rounded-xl border border-gray-100 font-medium leading-tight">
                                     <span class="text-red-500">📍</span>
                                     <span class="font-bold text-gray-900">{{ $order->address }}</span>, <strong class="text-gray-800">{{ $order->district }}</strong>
                                 </div>
@@ -455,14 +500,14 @@
                             </p>
 
                             <!-- Tiền thu -->
-                            <div class="flex items-center justify-between text-xs pt-1 border-t border-gray-100">
-                                <span class="text-gray-500">Tổng thu:</span>
+                            <div class="flex items-center justify-between text-xs pt-1 border-t border-gray-200/60">
+                                <span class="text-gray-500 font-medium">Tổng thu:</span>
                                 <div class="text-right">
                                     <span class="font-black text-red-600 text-sm">
                                         {{ number_format((float) $order->total_amount, 0, ',', '.') }} ₫
                                     </span>
-                                    <span class="text-[10px] block text-gray-400">
-                                        {{ $isPaid ? 'Đã CK VietQR' : 'Thu tiền COD' }}
+                                    <span class="text-[10px] block font-bold {{ $isPaid ? 'text-emerald-600' : 'text-amber-600' }}">
+                                        {{ $isPaid ? '✓ Đã CK VietQR' : '• Thu tiền COD' }}
                                     </span>
                                 </div>
                             </div>
@@ -515,7 +560,7 @@
                             <button 
                                 type="button" 
                                 @click="openDetailModal({{ json_encode($modalPayload) }})"
-                                class="px-2.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold transition-colors cursor-pointer"
+                                class="px-2.5 py-2 rounded-xl bg-white hover:bg-gray-100 text-gray-700 border border-gray-200 text-xs font-bold transition-colors cursor-pointer shadow-2xs"
                                 title="Xem chi tiết đơn"
                             >
                                 👁️
@@ -526,28 +571,14 @@
                 @endforeach
             </div>
         @else
-            <div class="py-6 text-center text-xs font-bold text-gray-500 bg-gray-50/50 rounded-xl">
+            <div class="py-6 text-center text-xs font-bold text-gray-500 bg-gray-50/60 rounded-2xl border border-dashed border-gray-200">
                 🎉 Tuyệt vời! Hiện không có đơn nào đang chờ xử lý. Bếp đã hoàn thành tất cả đơn hàng.
             </div>
         @endif
 
     </div>
 
-    <!-- 4. TÌNH HÌNH HÔM NAY (QUICK SUMMARY STRIP) -->
-    <div class="bg-gray-900 text-white p-3.5 rounded-2xl shadow-xs flex flex-wrap items-center justify-between gap-3 text-xs font-bold">
-        <span class="text-gray-400 uppercase tracking-wider text-[11px] font-black">⚡ Tình hình hôm nay:</span>
-        <div class="flex flex-wrap items-center gap-4 sm:gap-6">
-            <span>🛒 {{ $todayStats['orders_count'] }} đơn</span>
-            <span>💰 {{ number_format($todayStats['revenue'], 0, ',', '.') }} ₫</span>
-            <span>🍗 {{ $todayStats['dishes_count'] }} suất món</span>
-            <span class="text-emerald-400">🚚 {{ $todayStats['completed_count'] }} đã giao</span>
-            @if($todayStats['cancelled_count'] > 0)
-                <span class="text-rose-400">❌ {{ $todayStats['cancelled_count'] }} huỷ</span>
-            @endif
-        </div>
-    </div>
-
-    <!-- 5. 2-COLUMN LAYOUT: BIỂU ĐỒ DOANH THU + 🔥 MÓN BÁN CHẠY (TOP 5) -->
+    <!-- 4. 2-COLUMN LAYOUT: BIỂU ĐỒ DOANH THU + 🔥 MÓN BÁN CHẠY (TOP 5) -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
         
         <!-- BIỂU ĐỒ DOANH THU & SỐ ĐƠN (2 Cột) -->
@@ -582,7 +613,7 @@
             </div>
 
             <!-- Canvas Biểu đồ -->
-            <div class="h-60 relative">
+            <div class="h-64 relative">
                 <canvas id="dashboardChart"></canvas>
             </div>
 
@@ -603,20 +634,20 @@
                     <div class="py-2.5 flex items-center justify-between gap-3 first:pt-0 last:pb-0">
                         
                         <div class="flex items-center gap-2.5 min-w-0">
-                            <span class="w-5 text-center font-black text-xs {{ $index === 0 ? 'text-amber-500' : ($index === 1 ? 'text-gray-500' : 'text-gray-400') }}">
-                                #{{ $index + 1 }}
+                            <span class="w-6 h-6 rounded-full flex items-center justify-center font-black text-xs {{ $index === 0 ? 'bg-amber-100 text-amber-700' : ($index === 1 ? 'bg-slate-100 text-slate-700' : ($index === 2 ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-500')) }}">
+                                {{ $index + 1 }}
                             </span>
                             <img 
                                 src="{{ $item->image_url }}" 
                                 alt="{{ $item->product_name }}" 
-                                class="w-9 h-9 rounded-lg object-cover border border-gray-200 shrink-0 bg-gray-50"
+                                class="w-10 h-10 rounded-xl object-cover border border-gray-200 shrink-0 bg-gray-50"
                             >
                             <div class="truncate">
                                 <span class="font-bold text-xs text-gray-900 block truncate" title="{{ $item->product_name }}">
                                     {{ $item->product_name }}
                                 </span>
                                 <span class="text-[11px] text-gray-500 font-medium block">
-                                    <strong>{{ $item->total_quantity }}</strong> suất · {{ number_format((float) $item->total_revenue, 0, ',', '.') }} ₫
+                                    <strong class="text-gray-800">{{ $item->total_quantity }}</strong> suất · <span class="text-gray-400">{{ number_format((float) $item->total_revenue, 0, ',', '.') }} ₫</span>
                                 </span>
                             </div>
                         </div>
