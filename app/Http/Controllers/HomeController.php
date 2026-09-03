@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Benefit;
-use App\Models\Combo;
 use App\Models\Hero;
 use App\Models\Product;
 use App\Models\Sauce;
@@ -22,7 +21,14 @@ class HomeController extends Controller
             'hero' => Schema::hasTable('heroes') ? Hero::active()->ordered()->first() : null,
             'featuredSauces' => Schema::hasTable('sauces') ? Sauce::active()->available()->orderBy('id')->limit(4)->get() : collect(),
             'popularProducts' => Schema::hasTable('products') ? Product::with(['category', 'sauce', 'sauces'])->bestSeller(8)->get() : collect(),
-            'combos' => Schema::hasTable('combos') ? Combo::with('items.product')->active()->ordered()->limit(3)->get() : collect(),
+            'combos' => Schema::hasTable('products')
+                ? Product::with(['category', 'sauce', 'sauces'])
+                    ->whereHas('category', fn ($q) => $q->where('slug', 'combo'))
+                    ->available()
+                    ->ordered()
+                    ->limit(3)
+                    ->get()
+                : collect(),
             'benefits' => Schema::hasTable('benefits') ? Benefit::active()->ordered()->get() : collect(),
             'testimonials' => Schema::hasTable('testimonials') ? Testimonial::active()->ordered()->get() : collect(),
         ]);

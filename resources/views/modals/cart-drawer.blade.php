@@ -51,11 +51,12 @@
             @php
                 $freeshipLimit = (int) ($settings['freeship_threshold'] ?? 100000);
                 $defaultShipping = (int) ($settings['shipping_base_fee'] ?? ($settings['shipping_fee_default'] ?? 15000));
+                $baseDistance = $settings['shipping_base_distance'] ?? '3';
             @endphp
             <div class="bg-white px-5 py-3 border-b border-orange-100/70 shrink-0">
                 <div class="flex items-center gap-2 text-xs font-black text-gray-800">
                     <span>🎉</span>
-                    <span x-show="totalPrice >= {{ $freeshipLimit }}">Bạn đã được <strong>FREE SHIP 3KM!</strong></span>
+                    <span x-show="totalPrice >= {{ $freeshipLimit }}">Bạn đã được <strong>MIỄN PHÍ GIAO HÀNG (Freeship {{ $baseDistance }}km)!</strong></span>
                     <span x-show="totalPrice < {{ $freeshipLimit }}">Mua thêm <strong class="text-red-600" x-text="formatCurrency({{ $freeshipLimit }} - totalPrice)"></strong> để được <strong>FREE SHIP!</strong></span>
                 </div>
                 <!-- Progress Bar -->
@@ -159,19 +160,51 @@
 
                 <!-- Upsell Carousel / Strip -->
                 <div class="pt-2 space-y-2.5" x-show="cartItems.length > 0">
-                    <div class="text-xs font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                        <span>🥤</span>
-                        <span>GỢI Ý THÊM MÓN NGON:</span>
+                    <div class="flex items-center justify-between">
+                        <div class="text-xs font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                            <span>🥤</span>
+                            <span>GỢI Ý THÊM MÓN NGON:</span>
+                        </div>
+                        <!-- Nút bấm lướt trái / phải tiện lợi -->
+                        <div class="flex items-center gap-1.5" x-show="upsellItems && upsellItems.length > 1">
+                            <button 
+                                type="button" 
+                                @click="$refs.upsellStrip.scrollBy({ left: -160, behavior: 'smooth' })"
+                                class="w-6 h-6 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-600 flex items-center justify-center text-xs font-black transition-colors cursor-pointer border border-gray-200 shadow-2xs"
+                                title="Lướt món trước"
+                            >‹</button>
+                            <button 
+                                type="button" 
+                                @click="$refs.upsellStrip.scrollBy({ left: 160, behavior: 'smooth' })"
+                                class="w-6 h-6 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-600 flex items-center justify-center text-xs font-black transition-colors cursor-pointer border border-gray-200 shadow-2xs"
+                                title="Lướt món tiếp theo"
+                            >›</button>
+                        </div>
                     </div>
-                    <div class="flex gap-2.5 overflow-x-auto pb-2 scrollbar-none">
+
+                    <!-- Danh sách món có thể lướt bằng mọi cách: Click / Kéo chuột / Lăn chuột / Phím -->
+                    <div 
+                        x-ref="upsellStrip"
+                        x-data="{ isDown: false, startX: 0, sLeft: 0 }"
+                        @mousedown="isDown = true; startX = $event.pageX - $el.offsetLeft; sLeft = $el.scrollLeft; $el.classList.add('cursor-grabbing')"
+                        @mouseleave="isDown = false; $el.classList.remove('cursor-grabbing')"
+                        @mouseup="isDown = false; $el.classList.remove('cursor-grabbing')"
+                        @mousemove="if(!isDown) return; $event.preventDefault(); const walk = ($event.pageX - $el.offsetLeft - startX) * 1.5; $el.scrollLeft = sLeft - walk"
+                        @wheel.prevent="$el.scrollLeft += $event.deltaY"
+                        class="flex gap-2.5 overflow-x-auto pb-2 scroll-smooth select-none cursor-grab scrollbar-none"
+                    >
                         <template x-for="up in upsellItems" :key="up.id">
-                            <div class="shrink-0 bg-white border border-gray-200 rounded-full px-3.5 py-1.5 flex items-center gap-2 shadow-xs">
-                                <span class="text-sm" x-text="up.icon">🥤</span>
+                            <div 
+                                @click="$el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })"
+                                class="shrink-0 bg-white border border-gray-200 hover:border-red-400 rounded-full px-3.5 py-1.5 flex items-center gap-2 shadow-2xs transition-all duration-200 active:scale-95"
+                            >
+                                <span class="text-sm" x-text="up.icon || '🥤'">🥤</span>
                                 <span class="text-xs font-bold text-gray-800 whitespace-nowrap" x-text="up.name">Coca Cola</span>
                                 <span class="text-xs font-black text-red-600" x-text="'+' + formatCurrency(up.price)">+12.000đ</span>
                                 <button 
-                                    @click="addToCartDirect(up)" 
-                                    class="text-[11px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-2 py-0.5 rounded-full cursor-pointer"
+                                    @click.stop="addToCartDirect(up); $el.parentElement.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })" 
+                                    type="button"
+                                    class="text-[11px] font-bold text-red-600 hover:text-white hover:bg-red-600 bg-red-50 hover:border-red-600 px-2.5 py-0.5 rounded-full border border-red-200 transition-colors cursor-pointer"
                                 >+ Thêm</button>
                             </div>
                         </template>

@@ -10,48 +10,8 @@
         selectedDrawerOrder: null,
         activePrintOrder: null,
         copyToast: '',
-        lastOrderId: {{ $latestOrderId }},
         newOrdersCount: 0,
-        audioEnabled: true,
         orderStatuses: {},
-
-        init() {
-            // Polling check đơn mới mỗi 15 giây
-            setInterval(() => {
-                this.checkNewOrders();
-            }, 15000);
-        },
-
-        async checkNewOrders() {
-            if (this.lastOrderId <= 0) return;
-            try {
-                const res = await fetch(`/admin/orders/check-new?last_order_id=${this.lastOrderId}`);
-                const data = await res.json();
-                if (data.success && data.has_new) {
-                    this.newOrdersCount = data.new_count;
-                    if (this.audioEnabled) {
-                        this.playNotificationSound();
-                    }
-                }
-            } catch (e) {}
-        },
-
-        playNotificationSound() {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-                osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.15); // A5
-                gain.gain.setValueAtTime(0.3, ctx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.4);
-            } catch(e) {}
-        },
 
         showToast(msg) {
             this.copyToast = msg;
@@ -171,6 +131,7 @@
     @keydown.window.escape="selectedDrawerOrder = null; activePrintOrder = null"
     @keydown.window.p="if (selectedDrawerOrder && !activePrintOrder) { openPrintModal(selectedDrawerOrder); }"
     @keydown.window.c="if (selectedDrawerOrder && !activePrintOrder) { copyShipperInfo(selectedDrawerOrder); }"
+    @new-order-received.window="newOrdersCount += ($event.detail?.new_count || 1)"
 >
 
     <!-- BANNER BÁO ĐƠN HÀNG MỚI THỜI GIAN THỰC -->
@@ -312,20 +273,20 @@
 
     </div>
 
-    <!-- 2. BẢNG DANH SÁCH ĐƠN HÀNG (AJAX STATE TRANSITION, 1-CHẠM) -->
+    <!-- 2. BẢNG DANH SÁCH ĐƠN HÀNG (TABLE-FIXED 100% KHÔNG BAO GIỜ TRÀN NGANG, AJAX STATE TRANSITION) -->
     <div class="bg-white rounded-2xl border border-gray-200/80 shadow-xs overflow-hidden">
-        <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+        <div class="w-full overflow-x-hidden">
+            <table class="w-full table-fixed text-left text-xs border-collapse">
                 
-                <thead class="bg-gray-50/80 text-gray-500 uppercase tracking-wider text-[10px] font-black border-b border-gray-100">
+                <thead class="bg-gray-50/90 text-gray-500 uppercase tracking-wider text-[10px] font-black border-b border-gray-100">
                     <tr>
-                        <th class="px-4 py-3">Mã Đơn / Giờ</th>
-                        <th class="px-4 py-3">Khách Hàng & Giao Hàng</th>
-                        <th class="px-4 py-3">Món Bếp Làm</th>
-                        <th class="px-4 py-3">Thanh Toán</th>
-                        <th class="px-4 py-3 text-right">Tổng Thu</th>
-                        <th class="px-4 py-3">Trạng Thái</th>
-                        <th class="px-4 py-3 text-right">Thao Tác (1-Chạm)</th>
+                        <th class="px-3 py-2.5 w-[130px] whitespace-nowrap">Mã Đơn / Giờ</th>
+                        <th class="px-2.5 py-2.5 w-[155px] whitespace-nowrap">Khách Hàng</th>
+                        <th class="px-2.5 py-2.5 min-w-0">Món Bếp Làm</th>
+                        <th class="px-1.5 py-2.5 w-[75px] text-center whitespace-nowrap">Thanh Toán</th>
+                        <th class="px-2.5 py-2.5 w-[95px] text-right whitespace-nowrap">Tổng Thu</th>
+                        <th class="px-2 py-2.5 w-[130px] text-center whitespace-nowrap">Trạng Thái</th>
+                        <th class="px-3 py-2.5 w-[145px] text-right whitespace-nowrap">Thao Tác</th>
                     </tr>
                 </thead>
 
@@ -335,7 +296,37 @@
                             $formattedTotal = number_format((float) $order->total_amount, 0, ',', '.') . ' ₫';
                             $isPaid = ($order->payment_status === 'paid');
                             
-                            // JSON object payload for Detail Drawer
+                            // Gom nhóm các món trùng thuộc tính để hiển thị phẳng, siêu gọn
+                            $groupedItems = [];
+                            foreach ($order->items as $item) {
+                                $sauce = trim((string) ($item->sauce ?? ''));
+                                $toppings = is_array($item->toppings) ? implode(', ', $item->toppings) : trim((string) ($item->toppings ?? ''));
+                                $key = md5(($item->product_name ?? '') . '__' . $sauce . '__' . $toppings);
+                                
+                                if (!isset($groupedItems[$key])) {
+                                    $groupedItems[$key] = [
+                                        'name' => $item->product_name,
+                                        'quantity' => (int) $item->quantity,
+                                        'sauce' => $sauce,
+                                        'toppings' => $toppings,
+                                        'price' => (float) ($item->total_item_price ?: ($item->price * $item->quantity)),
+                                    ];
+                                } else {
+                                    $groupedItems[$key]['quantity'] += (int) $item->quantity;
+                                    $groupedItems[$key]['price'] += (float) ($item->total_item_price ?: ($item->price * $item->quantity));
+                                }
+                            }
+                            $groupedItems = array_values($groupedItems);
+                            $totalPortions = array_sum(array_column($groupedItems, 'quantity'));
+                            $distinctCount = count($groupedItems);
+
+                            // Tính thời gian chờ (Elapsed time)
+                            $minutesAgo = $order->created_at ? (int) abs(now()->diffInMinutes($order->created_at)) : 0;
+                            $waitText = $minutesAgo < 1 ? 'Vừa xong' : ($minutesAgo < 60 ? $minutesAgo . 'p trước' : (int) ($minutesAgo / 60) . 'h trước');
+                            $isPending = ($order->order_status === 'pending');
+                            $isOverdue = ($isPending && $minutesAgo >= 10);
+
+                            // JSON object payload for Detail Drawer & Print Modal
                             $orderPayload = [
                                 'id' => $order->id,
                                 'code' => $order->order_code,
@@ -354,107 +345,143 @@
                                 'shipping' => (float) $order->shipping_fee === 0.0 ? '0 ₫ (Freeship)' : number_format((float) $order->shipping_fee, 0, ',', '.') . ' ₫',
                                 'discount' => (float) $order->discount > 0 ? '-' . number_format((float) $order->discount, 0, ',', '.') . ' ₫' : null,
                                 'total' => $formattedTotal,
-                                'items' => $order->items->map(fn($item) => [
-                                    'name' => $item->product_name,
-                                    'qty' => $item->quantity,
-                                    'sauce' => $item->sauce,
-                                    'toppings' => $item->toppings,
-                                    'price' => number_format((float) ($item->total_item_price ?: ($item->price * $item->quantity)), 0, ',', '.') . ' ₫'
-                                ])
+                                'items' => array_map(fn($gi) => [
+                                    'name' => $gi['name'],
+                                    'qty' => $gi['quantity'],
+                                    'sauce' => $gi['sauce'],
+                                    'toppings' => $gi['toppings'],
+                                    'price' => number_format($gi['price'], 0, ',', '.') . ' ₫'
+                                ], $groupedItems)
                             ];
                         @endphp
 
                         <tr 
-                            class="hover:bg-gray-50/70 transition-colors cursor-pointer"
+                            class="hover:bg-amber-50/40 transition-colors cursor-pointer {{ $isPending ? 'bg-amber-50/20' : '' }}"
                             :class="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'pending' ? 'bg-amber-50/30' : ''"
                             @click="openDrawer({{ json_encode($orderPayload) }})"
                         >
                             
-                            <!-- 1. Mã đơn & Giờ đặt -->
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <!-- 1. Mã đơn & Thời gian chờ -->
+                            <td class="px-3 py-2.5 align-top whitespace-nowrap overflow-hidden">
                                 <div class="space-y-0.5">
                                     <div class="flex items-center gap-1.5">
-                                        <span class="font-black text-gray-900 font-mono text-xs block hover:text-red-600 transition-colors">
+                                        <span class="font-black text-gray-900 font-mono text-xs hover:text-red-600 transition-colors">
                                             #{{ $order->order_code }}
                                         </span>
-                                        @if($order->order_status === 'pending')
-                                            <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
+                                        @if($isPending)
+                                            <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-black bg-red-600 text-white animate-pulse shrink-0">Mới</span>
                                         @endif
                                     </div>
-                                    <span class="text-[10px] text-gray-400 block font-normal">
-                                        {{ $order->created_at ? $order->created_at->format('H:i - d/m') : '' }}
-                                    </span>
+                                    <div class="flex items-center gap-1 text-[10px] text-gray-400">
+                                        <span>{{ $order->created_at ? $order->created_at->format('H:i') : '' }}</span>
+                                        <span>·</span>
+                                        <span class="font-bold {{ $isOverdue ? 'text-red-600 bg-red-50 px-1 rounded' : 'text-gray-500' }}" title="Thời gian từ lúc khách đặt đơn">
+                                            ⏱️ {{ $waitText }}
+                                        </span>
+                                    </div>
                                 </div>
                             </td>
 
                             <!-- 2. Khách hàng & Giao hàng tinh gọn -->
-                            <td class="px-4 py-3 min-w-[200px] max-w-[240px]">
-                                <div class="space-y-0.5">
-                                    <div class="flex items-center gap-1.5 flex-wrap">
-                                        <strong class="text-gray-900 font-bold text-xs">{{ $order->customer_name }}</strong>
-                                        <span class="text-gray-400 text-[10px]">·</span>
-                                        <span class="text-gray-600 font-semibold text-[11px]">{{ $order->district }}</span>
+                            <td class="px-2.5 py-2.5 align-top overflow-hidden">
+                                <div class="space-y-0.5 min-w-0">
+                                    <div class="flex items-center gap-1 truncate">
+                                        <strong class="text-gray-900 font-bold text-xs truncate" title="{{ $order->customer_name }}">{{ $order->customer_name }}</strong>
+                                        @if($order->district)
+                                            <span class="text-gray-400 text-[10px]">·</span>
+                                            <span class="text-gray-500 text-[10px] font-semibold truncate">{{ $order->district }}</span>
+                                        @endif
                                     </div>
-                                    <div class="flex items-center gap-2 text-[11px]" @click.stop>
-                                        <a href="tel:{{ $order->customer_phone }}" class="text-emerald-700 font-bold font-mono hover:underline">
+
+                                    <div class="flex items-center gap-1.5 text-[10px]" @click.stop>
+                                        <a href="tel:{{ $order->customer_phone }}" class="text-emerald-700 font-bold font-mono hover:underline truncate">
                                             📞 {{ $order->customer_phone }}
                                         </a>
                                         <a 
                                             href="https://www.google.com/maps/search/?api=1&query={{ urlencode($order->address . ', ' . $order->district . ', Hà Nội') }}" 
                                             target="_blank" 
-                                            class="text-blue-600 font-bold text-[10px] hover:underline flex items-center gap-0.5"
+                                            class="text-blue-600 font-bold hover:underline shrink-0 text-[10px]"
                                             title="Mở Google Maps chỉ đường"
                                         >
-                                            <span>🗺️ Chỉ đường</span>
+                                            🗺️
                                         </a>
+                                    </div>
+
+                                    @if(!empty($order->driver_note))
+                                        <div class="text-[10px] text-amber-900 bg-amber-50 px-1 py-0.2 rounded border border-amber-200/70 font-medium truncate" title="{{ $order->driver_note }}">
+                                            📝 {{ $order->driver_note }}
+                                        </div>
+                                    @endif
+                                </div>
+                            </td>
+
+                            <!-- 3. Món bếp làm (Flat List siêu compact, dễ quét nhanh) -->
+                            <td class="px-2.5 py-2.5 align-top overflow-hidden">
+                                <div class="space-y-1 min-w-0">
+                                    <!-- Header tóm tắt tổng số suất -->
+                                    <div class="flex items-center gap-1">
+                                        <span class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-orange-50 text-orange-950 border border-orange-200/80 text-[10px] font-black shrink-0">
+                                            🍗 {{ $totalPortions }} suất @if($distinctCount > 1) <span class="text-orange-700 font-normal">({{ $distinctCount }} món)</span> @endif
+                                        </span>
+                                    </div>
+
+                                    <!-- Danh sách các món flat tinh gọn -->
+                                    <div class="space-y-0.5 min-w-0">
+                                        @foreach($groupedItems as $item)
+                                            @php
+                                                $itemDetails = [];
+                                                if (!empty($item['sauce'])) {
+                                                    $itemDetails[] = 'Sốt ' . $item['sauce'];
+                                                }
+                                                if (!empty($item['toppings'])) {
+                                                    $itemDetails[] = is_array($item['toppings']) ? implode(', ', $item['toppings']) : $item['toppings'];
+                                                }
+                                            @endphp
+                                            <div class="flex items-start justify-between gap-1 text-xs leading-snug min-w-0">
+                                                <div class="min-w-0 truncate">
+                                                    <span class="font-bold text-gray-900 truncate" title="{{ $item['name'] }}">{{ $item['name'] }}</span>
+                                                    @if(!empty($itemDetails))
+                                                        <span class="text-[10px] text-gray-500 font-normal truncate" title="{{ implode(', ', $itemDetails) }}">
+                                                            ({{ implode(', ', $itemDetails) }})
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                                <span class="font-black text-red-600 font-mono text-[11px] shrink-0 px-1 py-0.2 bg-red-50 text-red-700 rounded border border-red-200">
+                                                    ×{{ $item['quantity'] }}
+                                                </span>
+                                            </div>
+                                        @endforeach
                                     </div>
                                 </div>
                             </td>
 
-                            <!-- 3. Món bếp làm -->
-                            <td class="px-4 py-3 max-w-[260px]">
-                                <div class="space-y-1">
-                                    @foreach($order->items as $item)
-                                        <div class="text-xs leading-tight">
-                                            <span class="font-bold text-gray-900">{{ $item->product_name }}</span>
-                                            <span class="font-black text-red-600 font-mono">×{{ $item->quantity }}</span>
-                                            @if($item->sauce || !empty($item->toppings))
-                                                <span class="text-[10px] text-gray-500 font-medium block">
-                                                    @if($item->sauce) Sốt {{ $item->sauce }} @endif
-                                                    @if($item->sauce && !empty($item->toppings)) · @endif
-                                                    @if(!empty($item->toppings)) {{ implode(', ', (array) $item->toppings) }} @endif
-                                                </span>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </td>
-
                             <!-- 4. Thanh toán -->
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <td class="px-1.5 py-2.5 align-top whitespace-nowrap text-center overflow-hidden">
                                 <span 
-                                    class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold"
-                                    :class="(orderStatuses[{{ $order->id }}]?.is_paid ?? {{ $isPaid ? 'true' : 'false' }}) ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'"
-                                    x-text="(orderStatuses[{{ $order->id }}]?.is_paid ?? {{ $isPaid ? 'true' : 'false' }}) ? '💳 Đã CK' : '💵 Thu COD'"
+                                    class="inline-block px-1.5 py-0.5 rounded-full text-[10px] font-black border"
+                                    :class="(orderStatuses[{{ $order->id }}]?.is_paid ?? {{ $isPaid ? 'true' : 'false' }}) ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-900 border-amber-200'"
+                                    x-text="(orderStatuses[{{ $order->id }}]?.is_paid ?? {{ $isPaid ? 'true' : 'false' }}) ? '💳 CK' : '💵 COD'"
                                 >
-                                    {{ $isPaid ? '💳 Đã CK' : '💵 Thu COD' }}
+                                    {{ $isPaid ? '💳 CK' : '💵 COD' }}
                                 </span>
                             </td>
 
                             <!-- 5. Tổng thu -->
-                            <td class="px-4 py-3 whitespace-nowrap text-right">
-                                <span class="font-black text-red-600 text-xs block">
-                                    {{ $formattedTotal }}
-                                </span>
-                                <span class="text-[10px] text-gray-400">
-                                    {{ (float) $order->shipping_fee === 0.0 ? 'Freeship' : 'Ship ' . number_format((float) $order->shipping_fee, 0, ',', '.') . '₫' }}
-                                </span>
+                            <td class="px-2.5 py-2.5 align-top whitespace-nowrap text-right overflow-hidden">
+                                <div class="space-y-0.5">
+                                    <span class="font-black text-red-600 text-xs sm:text-sm block tracking-tight">
+                                        {{ $formattedTotal }}
+                                    </span>
+                                    <span class="text-[10px] text-gray-400 font-medium block">
+                                        {{ (float) $order->shipping_fee === 0.0 ? 'Freeship' : '+' . number_format((float) $order->shipping_fee, 0, ',', '.') . '₫' }}
+                                    </span>
+                                </div>
                             </td>
 
                             <!-- 6. Trạng thái (Live Dynamic) -->
-                            <td class="px-4 py-3 whitespace-nowrap">
+                            <td class="px-2 py-2.5 align-top whitespace-nowrap text-center overflow-hidden">
                                 <span 
-                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold border"
+                                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold border shadow-2xs truncate max-w-full"
                                     :class="orderStatuses[{{ $order->id }}]?.color || '{{ $order->status_color }}'"
                                     x-text="orderStatuses[{{ $order->id }}]?.label || '{{ $order->status_label }}'"
                                 >
@@ -462,45 +489,48 @@
                                 </span>
                             </td>
 
-                            <!-- 7. THAO TÁC: 1 PRIMARY CTA & NÚT IN NHANH (AJAX 1-CHẠM) -->
-                            <td class="px-4 py-3 whitespace-nowrap text-right" @click.stop>
-                                <div class="inline-flex items-center gap-1.5 justify-end">
+                            <!-- 7. THAO TÁC: NỔI BẬT CTA 1-CHẠM (RỘNG RÃI, ĐỦ CHỖ 100%) -->
+                            <td class="px-3 py-2.5 align-top whitespace-nowrap text-right" @click.stop>
+                                <div class="inline-flex items-center gap-1.5 justify-end w-full">
                                     <button 
                                         type="button" 
                                         @click="openPrintModal({{ json_encode($orderPayload) }})"
-                                        class="p-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors cursor-pointer"
+                                        class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold transition-colors cursor-pointer shadow-2xs text-xs flex items-center justify-center shrink-0"
                                         title="In phiếu bếp K80"
                                     >
                                         🖨️
                                     </button>
 
+                                    <!-- CTA NỔI BẬT: LÀM MÓN (ĐƠN MỚI CHỜ XỬ LÝ) -->
                                     <template x-if="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'pending'">
                                         <button 
                                             type="button" 
                                             @click="updateOrderStatus({{ $order->id }}, 'preparing', '{{ $order->order_code }}')"
-                                            class="px-3 py-1.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-black text-xs shadow-xs transition-transform active:scale-95 cursor-pointer"
+                                            class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-500 hover:to-amber-500 text-white font-black text-xs shadow-xs transition-transform active:scale-95 cursor-pointer ring-2 ring-orange-400/30 animate-pulse shrink-0 whitespace-nowrap"
                                             title="Xác nhận và bắt đầu làm món"
                                         >
-                                            🍳 Nhận & Làm món
+                                            🍳 Làm món
                                         </button>
                                     </template>
 
+                                    <!-- CTA: ĐÓNG GÓI & GIAO HÀNG -->
                                     <template x-if="['confirmed', 'preparing', 'processing'].includes(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}')">
                                         <button 
                                             type="button" 
                                             @click="updateOrderStatus({{ $order->id }}, 'delivering', '{{ $order->order_code }}')"
-                                            class="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-xs transition-transform active:scale-95 cursor-pointer"
+                                            class="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-xs transition-transform active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
                                             title="Đóng gói và đi giao"
                                         >
-                                            📦 Đóng gói & Giao
+                                            📦 Đi giao
                                         </button>
                                     </template>
 
+                                    <!-- CTA: XÁC NHẬN GIAO XONG -->
                                     <template x-if="['delivering', 'shipping'].includes(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}')">
                                         <button 
                                             type="button" 
                                             @click="updateOrderStatus({{ $order->id }}, 'completed', '{{ $order->order_code }}')"
-                                            class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-xs transition-transform active:scale-95 cursor-pointer"
+                                            class="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs shadow-xs transition-transform active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
                                             title="Xác nhận đã giao tận tay khách và thu tiền"
                                         >
                                             ✅ Giao xong
@@ -508,11 +538,11 @@
                                     </template>
 
                                     <template x-if="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'completed'">
-                                        <span class="text-xs font-bold text-emerald-700 inline-block py-1">✓ Hoàn tất</span>
+                                        <span class="text-xs font-bold text-emerald-700 inline-block py-1 px-2 bg-emerald-50 border border-emerald-200 rounded-lg shrink-0">✓ Xong</span>
                                     </template>
 
                                     <template x-if="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'cancelled'">
-                                        <span class="text-xs font-bold text-gray-400 inline-block py-1">✕ Đã huỷ</span>
+                                        <span class="text-xs font-bold text-gray-400 inline-block py-1 px-2 bg-gray-100 rounded-lg shrink-0">✕ Huỷ</span>
                                     </template>
                                 </div>
                             </td>

@@ -356,7 +356,13 @@
                 </thead>
                 <tbody class="divide-y divide-gray-100 font-medium text-gray-700">
                     <template x-for="c in filteredCoupons()" :key="c.id">
-                        <tr class="hover:bg-gray-50/60 transition-colors" :class="!c.is_active || c.is_expired || c.is_out_of_usage ? 'opacity-70 bg-gray-50/30' : ''">
+                        <tr 
+                            class="hover:bg-gray-50/60 transition-colors" 
+                            :class="[
+                                (!c.is_active || c.is_expired || c.is_out_of_usage ? 'opacity-70 bg-gray-50/30' : ''),
+                                (activeMenuId === c.id ? 'relative z-30' : '')
+                            ]"
+                        >
                             
                             <!-- 1. Mã Code (Click để copy) + Tên chương trình -->
                             <td class="px-4 py-3 whitespace-nowrap">
@@ -422,7 +428,7 @@
                             </td>
 
                             <!-- 7. Thao Tác (Sửa + Menu ⋮) -->
-                            <td class="px-4 py-3 whitespace-nowrap text-right relative" @click.stop>
+                            <td class="px-4 py-3 whitespace-nowrap text-right" :class="activeMenuId === c.id ? 'relative z-40' : 'relative'" @click.stop>
                                 <div class="inline-flex items-center justify-end gap-1">
                                     
                                     <!-- Nút Sửa -->
@@ -436,7 +442,7 @@
                                     </button>
 
                                     <!-- Menu 3 chấm -->
-                                    <div class="relative">
+                                    <div class="relative" :class="activeMenuId === c.id ? 'z-50' : ''">
                                         <button 
                                             type="button" 
                                             @click="activeMenuId = (activeMenuId === c.id ? null : c.id)"
@@ -454,7 +460,7 @@
                                             x-transition:leave="transition ease-in duration-75"
                                             x-transition:leave-start="opacity-100 scale-100"
                                             x-transition:leave-end="opacity-0 scale-95"
-                                            class="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-xl border border-gray-200 py-1.5 text-xs text-left z-30 font-medium"
+                                            class="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-2xl border border-gray-200 py-1.5 text-xs text-left z-50 font-medium"
                                             x-cloak
                                         >
                                             <button 

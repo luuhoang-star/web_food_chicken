@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -85,5 +86,45 @@ class Order extends Model
             'bank_transfer' => 'Chuyển khoản Ngân hàng',
             default => strtoupper((string) $this->payment_method),
         };
+    }
+
+    public function scopeFilterDate($query, ?string $dateFilter)
+    {
+        if ($dateFilter === 'today') {
+            return $query->whereDate('created_at', Carbon::today());
+        } elseif ($dateFilter === 'yesterday') {
+            return $query->whereDate('created_at', Carbon::yesterday());
+        } elseif ($dateFilter === '7days') {
+            return $query->where('created_at', '>=', Carbon::now()->subDays(7));
+        }
+
+        return $query;
+    }
+
+    public function scopeFilterAdmin($query, ?string $status = 'all', ?string $dateFilter = 'all', ?string $search = '')
+    {
+        if ($status && $status !== 'all' && in_array($status, ['pending', 'confirmed', 'preparing', 'delivering', 'completed', 'cancelled'])) {
+            if ($status === 'preparing') {
+                $query->whereIn('order_status', ['preparing', 'processing']);
+            } elseif ($status === 'delivering') {
+                $query->whereIn('order_status', ['delivering', 'shipping']);
+            } else {
+                $query->where('order_status', $status);
+            }
+        }
+
+        $query->filterDate($dateFilter);
+
+        $search = trim((string) $search);
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('order_code', 'LIKE', "%{$search}%")
+                    ->orWhere('customer_name', 'LIKE', "%{$search}%")
+                    ->orWhere('customer_phone', 'LIKE', "%{$search}%")
+                    ->orWhere('address', 'LIKE', "%{$search}%");
+            });
+        }
+
+        return $query;
     }
 }

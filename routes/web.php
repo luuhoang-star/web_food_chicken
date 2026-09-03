@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Admin\AuthController as AdminAuthController;
 use App\Http\Controllers\Admin\CategoryAdminController;
-use App\Http\Controllers\Admin\ComboAdminController;
 use App\Http\Controllers\Admin\ContentAdminController;
 use App\Http\Controllers\Admin\CouponAdminController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -88,15 +87,8 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/categories/{id}', [CategoryAdminController::class, 'destroy'])->name('categories.destroy');
         Route::patch('/categories/{id}/toggle', [CategoryAdminController::class, 'toggle'])->name('categories.toggle');
 
-        // 4. Quản lý Combo món ăn (Combos CRUD)
-        Route::get('/combos', [ComboAdminController::class, 'index'])->name('combos.index');
-        Route::get('/combos/create', [ComboAdminController::class, 'create'])->name('combos.create');
-        Route::post('/combos', [ComboAdminController::class, 'store'])->name('combos.store');
-        Route::get('/combos/{id}/edit', [ComboAdminController::class, 'edit'])->name('combos.edit');
-        Route::put('/combos/{id}', [ComboAdminController::class, 'update'])->name('combos.update');
-        Route::delete('/combos/{id}', [ComboAdminController::class, 'destroy'])->name('combos.destroy');
-        Route::patch('/combos/{id}/toggle', [ComboAdminController::class, 'toggle'])->name('combos.toggle');
-        Route::patch('/combos/{id}/price', [ComboAdminController::class, 'updatePrice'])->name('combos.update-price');
+        // 4. Gói Combo (Đã chuyển sang quản lý trực tiếp trong Thực Đơn Món)
+        Route::get('/combos', fn () => redirect()->route('admin.products.index', ['category' => 'combo']))->name('combos.index');
 
         // 5. Quản lý Vị sốt & Topping
         Route::get('/sauces', [SauceAdminController::class, 'index'])->name('sauces.index');

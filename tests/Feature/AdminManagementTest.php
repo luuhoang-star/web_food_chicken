@@ -2,7 +2,6 @@
 
 use App\Models\Benefit;
 use App\Models\Category;
-use App\Models\Combo;
 use App\Models\Coupon;
 use App\Models\Hero;
 use App\Models\Product;
@@ -46,7 +45,7 @@ test('admin can access dashboard and view kpi statistics', function () {
     $response->assertStatus(200);
     $response->assertSee('Doanh thu');
     $response->assertSee('Đơn cần xử lý');
-    $response->assertSee('Giá trị đơn TB');
+    $response->assertSee('Giá trị TB / Đơn');
 });
 
 test('admin can filter dashboard by date range', function () {
@@ -278,84 +277,11 @@ test('admin can create, update, toggle and delete categories', function () {
     expect(Category::where('id', $category->id)->exists())->toBeFalse();
 });
 
-test('admin can create, update, toggle and delete combos', function () {
+test('admin combos route redirects to products index with combo filter', function () {
     $admin = User::where('email', 'admin@gao.vn')->first();
-    $product = Product::first();
 
-    // 1. View combos index
-    $indexResponse = $this->actingAs($admin)->get(route('admin.combos.index'));
-    $indexResponse->assertStatus(200);
-    $indexResponse->assertSee('Combo Món Ăn');
-    $indexResponse->assertSee('Thêm Combo Mới');
-
-    // 2. View create form
-    $createResponse = $this->actingAs($admin)->get(route('admin.combos.create'));
-    $createResponse->assertStatus(200);
-    $createResponse->assertSee('Tạo Combo Món Ưu Đãi Mới');
-
-    // 3. Store new combo
-    $storeResponse = $this->actingAs($admin)->post(route('admin.combos.store'), [
-        'name' => 'Combo Siêu Gà Tiệc Tùng',
-        'price' => 199000,
-        'original_price' => 250000,
-        'tag' => 'BEST SELLER',
-        'subtag' => '🍱 Dành cho nhóm 4-5 người',
-        'description' => 'Gói tiệc gà rán đầy ắp với sốt tuỳ chọn.',
-        'items' => [
-            ['item_name' => '2 Cơm gà sốt', 'quantity' => 2, 'product_id' => $product->id],
-            ['item_name' => '2 Coca lon', 'quantity' => 2, 'product_id' => null],
-        ],
-    ]);
-    $storeResponse->assertRedirect(route('admin.combos.index'));
-    $combo = Combo::where('name', 'Combo Siêu Gà Tiệc Tùng')->first();
-    expect($combo)->not->toBeNull();
-    expect((int) $combo->price)->toBe(199000);
-    expect($combo->items()->count())->toBe(2);
-
-    // 4. Edit combo
-    $editResponse = $this->actingAs($admin)->get(route('admin.combos.edit', $combo->id));
-    $editResponse->assertStatus(200);
-    $editResponse->assertSee('Combo Siêu Gà Tiệc Tùng');
-
-    // 5. Update combo
-    $updateResponse = $this->actingAs($admin)->put(route('admin.combos.update', $combo->id), [
-        'name' => 'Combo Siêu Gà Tiệc Tùng VIP',
-        'price' => 210000,
-        'original_price' => 280000,
-        'tag' => 'TIẾT KIỆM',
-        'subtag' => '🍱 Gói VIP 5 người',
-        'items' => [
-            ['item_name' => '3 Cơm gà sốt', 'quantity' => 3, 'product_id' => $product->id],
-        ],
-    ]);
-    $updateResponse->assertRedirect(route('admin.combos.index'));
-    $combo->refresh();
-    expect($combo->name)->toBe('Combo Siêu Gà Tiệc Tùng VIP');
-    expect((int) $combo->price)->toBe(210000);
-    expect($combo->items()->count())->toBe(1);
-
-    // 6. Update combo price via JSON (Inline price edit)
-    $priceResponse = $this->actingAs($admin)->patchJson(route('admin.combos.update-price', $combo->id), [
-        'price' => 225000,
-    ]);
-    $priceResponse->assertStatus(200)
-        ->assertJson([
-            'success' => true,
-            'price' => 225000,
-        ]);
-    $combo->refresh();
-    expect((int) $combo->price)->toBe(225000);
-
-    // 7. Toggle combo
-    $toggleResponse = $this->actingAs($admin)->patch(route('admin.combos.toggle', $combo->id));
-    $toggleResponse->assertRedirect();
-    $combo->refresh();
-    expect($combo->is_active)->toBeFalse();
-
-    // 8. Delete combo
-    $deleteResponse = $this->actingAs($admin)->delete(route('admin.combos.destroy', $combo->id));
-    $deleteResponse->assertRedirect();
-    expect(Combo::where('id', $combo->id)->exists())->toBeFalse();
+    $response = $this->actingAs($admin)->get(route('admin.combos.index'));
+    $response->assertRedirect(route('admin.products.index', ['category' => 'combo']));
 });
 
 test('admin can create, update, toggle and delete coupons and apply via api', function () {

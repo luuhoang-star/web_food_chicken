@@ -289,6 +289,33 @@
                     </div>
                 </div>
 
+                <!-- Box Giải Thích Trực Quan Công Thức Tính Tiền -->
+                <div class="bg-amber-50/70 rounded-2xl p-4 border border-amber-200/80 space-y-2 text-xs text-amber-950">
+                    <div class="font-black text-amber-900 flex items-center gap-1.5 text-sm">
+                        <span>💡</span>
+                        <span>Cách hệ thống tính tiền ship & Freeship tự động cho khách:</span>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1 text-xs">
+                        <div class="bg-white/80 rounded-xl p-3 border border-amber-200/60 space-y-1">
+                            <span class="font-extrabold text-emerald-700 flex items-center gap-1">
+                                <span>🎉</span> 1. Đơn đủ điều kiện FREESHIP (0đ):
+                            </span>
+                            <p class="text-gray-600 leading-relaxed">
+                                Khách đặt món có <strong>Tổng tiền &ge; Giá trị tối thiểu Freeship</strong> &rarr; <span class="text-emerald-700 font-bold">Phí ship = 0đ</span> (Freeship hoàn toàn).
+                            </p>
+                        </div>
+                        <div class="bg-white/80 rounded-xl p-3 border border-amber-200/60 space-y-1">
+                            <span class="font-extrabold text-red-700 flex items-center gap-1">
+                                <span>🛵</span> 2. Đơn chưa đủ Freeship:
+                            </span>
+                            <p class="text-gray-600 leading-relaxed">
+                                &bull; Trong <strong>Khoảng cách cơ bản</strong>: Phí cố định là <strong>Phí ship cơ bản</strong>.<br>
+                                &bull; Vượt quá: Mỗi km thêm cộng thêm <strong>Phí mỗi km tiếp theo</strong>.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex justify-end pt-3 border-t border-gray-100">
                     <button 
                         type="submit" 

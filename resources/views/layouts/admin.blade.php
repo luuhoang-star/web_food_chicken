@@ -127,13 +127,6 @@
                 <span>Danh Mục Món</span>
             </a>
 
-            <a 
-                href="{{ route('admin.combos.index') }}" 
-                class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all {{ request()->routeIs('admin.combos.*') ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white font-bold shadow-md shadow-red-500/20' : 'text-slate-400 hover:bg-slate-800/70 hover:text-white' }}"
-            >
-                <span class="text-base">📦</span>
-                <span>Gói Combo</span>
-            </a>
 
             <a 
                 href="{{ route('admin.sauces.index') }}" 
@@ -269,10 +262,6 @@
                 <a href="{{ route('admin.categories.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.categories.*') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
                     <span>📂</span>
                     <span>Danh Mục Món</span>
-                </a>
-                <a href="{{ route('admin.combos.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.combos.*') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
-                    <span>📦</span>
-                    <span>Gói Combo</span>
                 </a>
                 <a href="{{ route('admin.sauces.index') }}" class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl {{ request()->routeIs('admin.sauces.*') ? 'bg-red-600 text-white font-bold' : 'text-gray-400 hover:bg-gray-800' }}">
                     <span>🥫</span>
@@ -618,6 +607,7 @@
                         lastCheckedOrderId = data.current_max_id;
                         playOrderChime();
                         showOrderToast(data.latest_order);
+                        window.dispatchEvent(new CustomEvent('new-order-received', { detail: data }));
                     }
 
                     // Cập nhật badge trên Desktop Sidebar & Mobile Bottom Bar

@@ -435,7 +435,13 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
                 @foreach($actionableOrders as $order)
                     @php
-                        $itemsTxt = $order->items->map(fn($i) => $i->product_name . ' × ' . $i->quantity)->implode(', ');
+                        $groupedActionItems = [];
+                        foreach ($order->items as $it) {
+                            $sauce = trim((string) ($it->sauce ?? ''));
+                            $key = $it->product_name . ($sauce ? " ($sauce)" : '');
+                            $groupedActionItems[$key] = ($groupedActionItems[$key] ?? 0) + (int) $it->quantity;
+                        }
+                        $itemsTxt = collect($groupedActionItems)->map(fn($qty, $name) => "{$name} ×{$qty}")->implode(', ');
                         $isPaid = ($order->payment_status === 'paid');
                         
                         $modalPayload = [
@@ -695,7 +701,13 @@
                 <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
                     @forelse($recentOrders as $order)
                         @php
-                            $itemsSummary = $order->items->pluck('product_name')->implode(', ');
+                            $groupedRecentItems = [];
+                            foreach ($order->items as $it) {
+                                $sauce = trim((string) ($it->sauce ?? ''));
+                                $key = $it->product_name . ($sauce ? " ($sauce)" : '');
+                                $groupedRecentItems[$key] = ($groupedRecentItems[$key] ?? 0) + (int) $it->quantity;
+                            }
+                            $itemsSummary = collect($groupedRecentItems)->map(fn($qty, $name) => "{$name} ×{$qty}")->implode(', ');
                             $isPaid = ($order->payment_status === 'paid');
                             
                             $rowModalPayload = [

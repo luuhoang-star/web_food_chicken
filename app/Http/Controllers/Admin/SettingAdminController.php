@@ -8,6 +8,7 @@ use App\Services\TelegramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -35,38 +36,17 @@ class SettingAdminController extends Controller
 
         // Xử lý upload ảnh Popup sự kiện
         if ($request->hasFile('popup_banner_file')) {
-            $uploadDir = public_path('images/settings');
-            if (! File::isDirectory($uploadDir)) {
-                File::makeDirectory($uploadDir, 0755, true);
-            }
-            $file = $request->file('popup_banner_file');
-            $fileName = 'popup_'.time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
-            $file->move($uploadDir, $fileName);
-            $inputs['popup_banner_image'] = 'images/settings/'.$fileName;
+            $inputs['popup_banner_image'] = $this->uploadSettingImage($request->file('popup_banner_file'), 'popup');
         }
 
         // Xử lý upload ảnh chia sẻ OG Image
         if ($request->hasFile('og_image_file')) {
-            $uploadDir = public_path('images/settings');
-            if (! File::isDirectory($uploadDir)) {
-                File::makeDirectory($uploadDir, 0755, true);
-            }
-            $file = $request->file('og_image_file');
-            $fileName = 'og_'.time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
-            $file->move($uploadDir, $fileName);
-            $inputs['og_image'] = 'images/settings/'.$fileName;
+            $inputs['og_image'] = $this->uploadSettingImage($request->file('og_image_file'), 'og');
         }
 
         // Xử lý upload Favicon
         if ($request->hasFile('favicon_file')) {
-            $uploadDir = public_path('images/settings');
-            if (! File::isDirectory($uploadDir)) {
-                File::makeDirectory($uploadDir, 0755, true);
-            }
-            $file = $request->file('favicon_file');
-            $fileName = 'favicon_'.time().'.'.$file->getClientOriginalExtension();
-            $file->move($uploadDir, $fileName);
-            $inputs['favicon_url'] = 'images/settings/'.$fileName;
+            $inputs['favicon_url'] = $this->uploadSettingImage($request->file('favicon_file'), 'favicon');
         }
 
         foreach ($inputs as $key => $value) {
@@ -79,6 +59,21 @@ class SettingAdminController extends Controller
         $redirectTo = $request->input('_redirect_to', url()->previous());
 
         return redirect($redirectTo)->with('success', 'Đã lưu cấu hình cài đặt thành công!');
+    }
+
+    /**
+     * Tải file ảnh cài đặt vào thư mục images/settings.
+     */
+    private function uploadSettingImage(UploadedFile $file, string $prefix): string
+    {
+        $uploadDir = public_path('images/settings');
+        if (! File::isDirectory($uploadDir)) {
+            File::makeDirectory($uploadDir, 0755, true);
+        }
+        $fileName = "{$prefix}_".time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
+        $file->move($uploadDir, $fileName);
+
+        return 'images/settings/'.$fileName;
     }
 
     /**

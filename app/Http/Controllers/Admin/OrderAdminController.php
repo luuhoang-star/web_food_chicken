@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -22,63 +21,39 @@ class OrderAdminController extends Controller
         $dateFilter = $request->input('date', 'all');
         $search = trim((string) $request->input('q', ''));
 
-        $query = Order::with('items')->latest();
+        $orders = Order::with('items')
+            ->filterAdmin($status, $dateFilter, $search)
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
 
-        // 1. Lọc theo trạng thái đơn
-        if ($status !== 'all' && in_array($status, ['pending', 'confirmed', 'preparing', 'delivering', 'completed', 'cancelled'])) {
-            if ($status === 'preparing') {
-                $query->whereIn('order_status', ['preparing', 'processing']);
-            } elseif ($status === 'delivering') {
-                $query->whereIn('order_status', ['delivering', 'shipping']);
-            } else {
-                $query->where('order_status', $status);
-            }
-        }
+        // Đếm số lượng đơn theo từng tab (gộp thành 1 câu query duy nhất tối ưu tốc độ)
+        $countQuery = Order::query()->filterDate($dateFilter);
 
-        // 2. Lọc theo mốc thời gian
-        if ($dateFilter === 'today') {
-            $query->whereDate('created_at', Carbon::today());
-        } elseif ($dateFilter === 'yesterday') {
-            $query->whereDate('created_at', Carbon::yesterday());
-        } elseif ($dateFilter === '7days') {
-            $query->where('created_at', '>=', Carbon::now()->subDays(7));
-        }
-
-        // 3. Tìm kiếm theo từ khoá
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('order_code', 'LIKE', "%{$search}%")
-                    ->orWhere('customer_name', 'LIKE', "%{$search}%")
-                    ->orWhere('customer_phone', 'LIKE', "%{$search}%")
-                    ->orWhere('address', 'LIKE', "%{$search}%");
-            });
-        }
-
-        $orders = $query->paginate(15)->withQueryString();
-
-        // Đếm số lượng đơn theo từng tab (áp dụng theo bộ lọc ngày nếu có)
-        $countQuery = Order::query();
-        if ($dateFilter === 'today') {
-            $countQuery->whereDate('created_at', Carbon::today());
-        } elseif ($dateFilter === 'yesterday') {
-            $countQuery->whereDate('created_at', Carbon::yesterday());
-        } elseif ($dateFilter === '7days') {
-            $countQuery->where('created_at', '>=', Carbon::now()->subDays(7));
-        }
+        $counts = (clone $countQuery)
+            ->selectRaw("
+                COUNT(*) as total,
+                COUNT(CASE WHEN order_status = 'pending' THEN 1 END) as pending,
+                COUNT(CASE WHEN order_status = 'confirmed' THEN 1 END) as confirmed,
+                COUNT(CASE WHEN order_status IN ('preparing', 'processing') THEN 1 END) as preparing,
+                COUNT(CASE WHEN order_status IN ('delivering', 'shipping') THEN 1 END) as delivering,
+                COUNT(CASE WHEN order_status = 'completed' THEN 1 END) as completed,
+                COUNT(CASE WHEN order_status = 'cancelled' THEN 1 END) as cancelled
+            ")
+            ->first();
 
         $statusCounts = [
-            'all' => (clone $countQuery)->count(),
-            'pending' => (clone $countQuery)->where('order_status', 'pending')->count(),
-            'confirmed' => (clone $countQuery)->where('order_status', 'confirmed')->count(),
-            'preparing' => (clone $countQuery)->whereIn('order_status', ['preparing', 'processing'])->count(),
-            'delivering' => (clone $countQuery)->whereIn('order_status', ['delivering', 'shipping'])->count(),
-            'completed' => (clone $countQuery)->where('order_status', 'completed')->count(),
-            'cancelled' => (clone $countQuery)->where('order_status', 'cancelled')->count(),
+            'all' => (int) ($counts->total ?? 0),
+            'pending' => (int) ($counts->pending ?? 0),
+            'confirmed' => (int) ($counts->confirmed ?? 0),
+            'preparing' => (int) ($counts->preparing ?? 0),
+            'delivering' => (int) ($counts->delivering ?? 0),
+            'completed' => (int) ($counts->completed ?? 0),
+            'cancelled' => (int) ($counts->cancelled ?? 0),
         ];
 
         // Lấy ID đơn hàng lớn nhất hiện tại để phục vụ check đơn mới
-        $latestOrder = Order::latest('id')->first();
-        $latestOrderId = $latestOrder ? $latestOrder->id : 0;
+        $latestOrderId = Order::max('id') ?? 0;
 
         return view('admin.orders.index', [
             'orders' => $orders,
@@ -99,34 +74,9 @@ class OrderAdminController extends Controller
         $dateFilter = $request->input('date', 'all');
         $search = trim((string) $request->input('q', ''));
 
-        $query = Order::with('items')->latest();
-
-        if ($status !== 'all' && in_array($status, ['pending', 'confirmed', 'preparing', 'delivering', 'completed', 'cancelled'])) {
-            if ($status === 'preparing') {
-                $query->whereIn('order_status', ['preparing', 'processing']);
-            } elseif ($status === 'delivering') {
-                $query->whereIn('order_status', ['delivering', 'shipping']);
-            } else {
-                $query->where('order_status', $status);
-            }
-        }
-
-        if ($dateFilter === 'today') {
-            $query->whereDate('created_at', Carbon::today());
-        } elseif ($dateFilter === 'yesterday') {
-            $query->whereDate('created_at', Carbon::yesterday());
-        } elseif ($dateFilter === '7days') {
-            $query->where('created_at', '>=', Carbon::now()->subDays(7));
-        }
-
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->where('order_code', 'LIKE', "%{$search}%")
-                    ->orWhere('customer_name', 'LIKE', "%{$search}%")
-                    ->orWhere('customer_phone', 'LIKE', "%{$search}%")
-                    ->orWhere('address', 'LIKE', "%{$search}%");
-            });
-        }
+        $query = Order::with('items')
+            ->filterAdmin($status, $dateFilter, $search)
+            ->latest();
 
         $fileName = 'Don_Hang_GAO_'.date('Ymd_His').'.csv';
 

@@ -30,7 +30,9 @@
         <div class="p-6 space-y-4">
             <div>
                 <h3 class="text-xl font-black text-gray-900 uppercase">{{ $combo->name }}</h3>
-                <p class="text-xs font-bold {{ $isBestSeller ? 'text-red-600' : 'text-gray-500' }}">{{ $combo->subtag ?? 'Combo siêu tiết kiệm' }}</p>
+                @if(!empty($combo->subtag))
+                    <p class="text-xs font-bold {{ $isBestSeller ? 'text-red-600' : 'text-gray-500' }}">{{ $combo->subtag }}</p>
+                @endif
             </div>
             
             <p class="text-xs font-semibold text-gray-600 leading-relaxed">
