@@ -18,6 +18,7 @@
     <div>
         <div class="relative aspect-[16/10] overflow-hidden bg-gray-200 cursor-pointer" @click="addToCartDirect({{ json_encode([
             'id' => 'combo-' . $combo->id,
+            'db_id' => $combo->id,
             'name' => $combo->name,
             'price' => (float)$combo->price,
             'image' => $combo->image
@@ -53,6 +54,7 @@
         <button 
             @click="addToCartDirect({{ json_encode([
                 'id' => 'combo-' . $combo->id,
+                'db_id' => $combo->id,
                 'name' => $combo->name,
                 'price' => (float)$combo->price,
                 'image' => $combo->image

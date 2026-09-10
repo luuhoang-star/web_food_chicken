@@ -112,6 +112,7 @@ class ProductAdminController extends Controller
             'description' => $request->filled('description') ? $request->input('description') : null,
             'image' => $imagePath,
             'is_hot' => (bool) $request->boolean('is_hot'),
+            'is_upsell' => (bool) $request->boolean('is_upsell'),
             'is_available' => $request->has('is_available') ? (bool) $request->boolean('is_available') : true,
             'order' => $request->filled('order') ? (int) $request->input('order') : ((Product::max('order') ?? 0) + 1),
             'rating' => 5.0,
@@ -160,6 +161,7 @@ class ProductAdminController extends Controller
             'description' => $request->filled('description') ? $request->input('description') : null,
             'image' => $imagePath,
             'is_hot' => (bool) $request->boolean('is_hot'),
+            'is_upsell' => (bool) $request->boolean('is_upsell'),
             'is_available' => (bool) $request->boolean('is_available'),
             'order' => $request->filled('order') ? (int) $request->input('order') : $product->order,
         ]);
@@ -238,6 +240,30 @@ class ProductAdminController extends Controller
     }
 
     /**
+     * Bật / Tắt trạng thái gợi ý món thêm trong giỏ hàng (Upsell / Cross-sell).
+     */
+    public function toggleUpsell(Request $request, int $id): JsonResponse|RedirectResponse
+    {
+        $product = Product::findOrFail($id);
+        $product->update([
+            'is_upsell' => ! $product->is_upsell,
+        ]);
+
+        $statusText = $product->is_upsell ? 'Đã bật gợi ý thêm' : 'Đã tắt gợi ý thêm';
+
+        if ($request->wantsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'is_upsell' => (bool) $product->is_upsell,
+                'status_label' => $statusText,
+                'message' => "{$statusText} cho món \"{$product->name}\"!",
+            ]);
+        }
+
+        return back()->with('success', "{$statusText} cho món \"{$product->name}\"!");
+    }
+
+    /**
      * Thao tác hàng loạt (Bulk Actions).
      */
     public function bulkAction(Request $request): RedirectResponse
@@ -245,7 +271,7 @@ class ProductAdminController extends Controller
         $request->validate([
             'ids' => ['required', 'array', 'min:1'],
             'ids.*' => ['exists:products,id'],
-            'action' => ['required', 'string', 'in:available,out_of_stock,delete'],
+            'action' => ['required', 'string', 'in:available,out_of_stock,upsell_enable,upsell_disable,delete'],
         ]);
 
         $ids = $request->input('ids', []);
@@ -258,6 +284,12 @@ class ProductAdminController extends Controller
         } elseif ($action === 'out_of_stock') {
             Product::whereIn('id', $ids)->update(['is_available' => false]);
             $message = "Đã chuyển {$count} món được chọn sang trạng thái HẾT MÓN!";
+        } elseif ($action === 'upsell_enable') {
+            Product::whereIn('id', $ids)->update(['is_upsell' => true]);
+            $message = "Đã BẬT gợi ý thêm trong giỏ hàng cho {$count} món được chọn!";
+        } elseif ($action === 'upsell_disable') {
+            Product::whereIn('id', $ids)->update(['is_upsell' => false]);
+            $message = "Đã TẮT gợi ý thêm trong giỏ hàng cho {$count} món được chọn!";
         } elseif ($action === 'delete') {
             Product::whereIn('id', $ids)->delete();
             $message = "Đã xoá {$count} món được chọn khỏi thực đơn thành công!";

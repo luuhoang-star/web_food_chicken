@@ -301,7 +301,7 @@
             </div>
 
             <!-- Trạng thái bán & Bật/Tắt -->
-            <div class="pt-2 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div class="pt-2 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
                 
                 <div class="p-3 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-between">
                     <div>
@@ -322,18 +322,35 @@
 
                 <div class="p-3 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-between">
                     <div>
-                        <span class="font-bold text-gray-800 block">Món Ăn Nổi Bật (Featured)</span>
+                        <span class="font-bold text-gray-800 block">Món Ăn Nổi Bật (Hot)</span>
                         <span class="text-[10px] text-gray-500">Ưu tiên đưa lên đầu trang chủ</span>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input 
                             type="checkbox" 
-                            name="is_featured" 
+                            name="is_hot" 
                             value="1" 
                             class="sr-only peer" 
-                            {{ old('is_featured', $product->is_featured ?? false) ? 'checked' : '' }}
+                            {{ old('is_hot', $product->is_hot ?? false) ? 'checked' : '' }}
                         >
                         <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-red-600"></div>
+                    </label>
+                </div>
+
+                <div class="p-3 rounded-xl bg-gray-50 border border-gray-200/80 flex items-center justify-between">
+                    <div>
+                        <span class="font-bold text-gray-800 block">Gợi Ý Giỏ Hàng (Upsell)</span>
+                        <span class="text-[10px] text-gray-500">Gợi ý thêm món khi mở giỏ</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            name="is_upsell" 
+                            value="1" 
+                            class="sr-only peer" 
+                            {{ old('is_upsell', $product->is_upsell ?? false) ? 'checked' : '' }}
+                        >
+                        <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
                     </label>
                 </div>
 

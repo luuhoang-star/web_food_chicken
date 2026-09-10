@@ -111,6 +111,44 @@
         }
     },
 
+    async toggleUpsell(productId, btnElem) {
+        try {
+            btnElem.style.opacity = '0.5';
+            const res = await fetch(`/admin/products/${productId}/toggle-upsell`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': this.csrfToken
+                }
+            });
+            btnElem.style.opacity = '1';
+
+            const data = await res.json();
+            if (res.ok && data.success) {
+                this.showToast(data.message);
+                const isUpsell = data.is_upsell;
+                const icon = btnElem.querySelector('.upsell-icon');
+                const text = btnElem.querySelector('.upsell-text');
+
+                if (isUpsell) {
+                    btnElem.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-300 transition-all cursor-pointer shadow-2xs';
+                    if (icon) icon.textContent = '⭐';
+                    if (text) text.textContent = 'Gợi ý';
+                } else {
+                    btnElem.className = 'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 border border-gray-200 transition-all cursor-pointer';
+                    if (icon) icon.textContent = '☆';
+                    if (text) text.textContent = 'Tắt';
+                }
+            } else {
+                this.showToast(data.message || 'Lỗi chuyển trạng thái gợi ý', 'error');
+            }
+        } catch (e) {
+            btnElem.style.opacity = '1';
+            this.showToast('Lỗi kết nối máy chủ', 'error');
+        }
+    },
+
     submitBulk(action) {
         if (this.selectedIds.length === 0) return;
         if (action === 'delete' && !confirm(`Bạn có chắc chắn muốn xoá ${this.selectedIds.length} món đã chọn?`)) {
@@ -273,6 +311,20 @@
             </button>
             <button 
                 type="button" 
+                @click="submitBulk('upsell_enable')"
+                class="px-3 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white transition-colors cursor-pointer"
+            >
+                ⭐ Bật gợi ý
+            </button>
+            <button 
+                type="button" 
+                @click="submitBulk('upsell_disable')"
+                class="px-3 py-1.5 rounded-xl bg-gray-600 hover:bg-gray-500 text-white transition-colors cursor-pointer"
+            >
+                ☆ Tắt gợi ý
+            </button>
+            <button 
+                type="button" 
                 @click="submitBulk('delete')"
                 class="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer"
             >
@@ -318,6 +370,7 @@
                         <th class="px-4 py-3.5">Giá Bán (Tự Lưu)</th>
                         <th class="px-4 py-3.5 text-center">Đã Bán</th>
                         <th class="px-4 py-3.5">Trạng Thái</th>
+                        <th class="px-4 py-3.5 text-center">Gợi Ý Giỏ</th>
                         <th class="px-4 py-3.5 text-right">Thao Tác</th>
                     </tr>
                 </thead>
@@ -452,6 +505,19 @@
                                 </button>
                             </td>
 
+                            <!-- Gợi Ý Upsell Giỏ Hàng (Toggle 1-Chạm) -->
+                            <td class="px-4 py-3.5 whitespace-nowrap text-center">
+                                <button 
+                                    type="button" 
+                                    @click="toggleUpsell({{ $product->id }}, $el)"
+                                    class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all cursor-pointer {{ $product->is_upsell ? 'bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-300 shadow-2xs' : 'bg-gray-50 text-gray-400 hover:text-gray-600 hover:bg-gray-100 border border-gray-200' }}"
+                                    title="Click để Bật / Tắt gợi ý thêm món này trong giỏ hàng"
+                                >
+                                    <span class="upsell-icon text-[11px]">{{ $product->is_upsell ? '⭐' : '☆' }}</span>
+                                    <span class="upsell-text">{{ $product->is_upsell ? 'Gợi ý' : 'Tắt' }}</span>
+                                </button>
+                            </td>
+
                             <!-- Thao Tác Chi Tiết -->
                             <td class="px-4 py-3.5 whitespace-nowrap text-right space-x-1">
                                 <a 
@@ -480,7 +546,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center py-12 text-gray-400 text-xs">
+                            <td colspan="8" class="text-center py-12 text-gray-400 text-xs">
                                 Không tìm thấy món ăn nào phù hợp với bộ lọc tìm kiếm.
                             </td>
                         </tr>

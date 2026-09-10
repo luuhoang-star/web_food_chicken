@@ -123,7 +123,8 @@
             products: @json($allProducts ?? $products ?? []),
             popularDishes: @json($popularDishes ?? []),
             combos: @json($combos ?? []),
-            upsellItems: @json($upsellItems ?? [])
+            upsellItems: @json($upsellItems ?? []),
+            coupons: @json($coupons ?? [])
         };
         window.GAO_SETTINGS = @json($settings ?? []);
     </script>

@@ -49,6 +49,11 @@
             return Math.max(0, this.totalPrice + ship - discount);
         },
 
+        async applyDirectCode(code) {
+            this.couponInput = code;
+            await this.applyCouponCode();
+        },
+
         async applyCouponCode() {
             if (!this.couponInput.trim()) {
                 this.couponError = 'Vui lòng nhập mã giảm giá.';
@@ -224,41 +229,147 @@
                     >
                 </div>
 
-                <!-- Section: Mã Giảm Giá / Voucher Ưu Đãi -->
-                <div class="space-y-2 pt-1 border-t border-gray-100">
-                    <label class="block text-xs sm:text-sm font-black text-gray-900 flex items-center gap-1.5">
-                        <span>🏷️</span>
-                        <span>Mã Giảm Giá / Voucher</span>
-                    </label>
-
-                    <div class="flex items-center gap-2">
-                        <input 
-                            type="text" 
-                            x-model="couponInput"
-                            placeholder="Nhập mã (VD: GAO20K)..."
-                            :disabled="appliedCoupon !== null"
-                            class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-xs sm:text-sm font-bold uppercase tracking-wider focus:outline-none focus:border-red-500 font-mono disabled:bg-gray-100"
+                <!-- Section: Mã Giảm Giá / Voucher Ưu Đãi (1-Chạm Áp Dụng) -->
+                <div class="space-y-3 pt-1 border-t border-gray-100">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs sm:text-sm font-black text-gray-900 flex items-center gap-1.5">
+                            <span>🏷️</span>
+                            <span>Mã Giảm Giá / Voucher</span>
+                        </label>
+                        <span 
+                            x-show="eligibleCouponsCount > 0" 
+                            class="text-[11px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full"
                         >
-                        <template x-if="!appliedCoupon">
-                            <button 
-                                @click="applyCouponCode()"
-                                type="button" 
-                                :disabled="isApplyingCoupon"
-                                class="px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-black transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                            Có <strong x-text="eligibleCouponsCount"></strong> mã khả dụng
+                        </span>
+                    </div>
+
+                    <!-- DANH SÁCH THẺ VOUCHER 1-CHẠM (Ticket Style) -->
+                    <div class="space-y-2" x-show="availableCoupons && availableCoupons.length > 0">
+                        <template x-for="cp in availableCoupons" :key="cp.id">
+                            <div 
+                                class="rounded-2xl border p-3 flex items-center justify-between gap-3 transition-all relative overflow-hidden"
+                                :class="appliedCoupon && appliedCoupon.coupon_code === cp.code 
+                                    ? 'border-2 border-emerald-500 bg-emerald-50/50 shadow-xs ring-2 ring-emerald-500/20' 
+                                    : (totalPrice >= cp.min_order_amount 
+                                        ? 'border-orange-200/90 bg-gradient-to-r from-orange-50/40 via-white to-orange-50/20 hover:border-red-400 shadow-2xs' 
+                                        : 'border-gray-200/80 bg-gray-50/70 opacity-75')"
                             >
-                                <span x-show="!isApplyingCoupon">Áp Dụng</span>
-                                <span x-show="isApplyingCoupon">Đang check...</span>
-                            </button>
+                                <!-- Left side: Ticket Icon & Info -->
+                                <div class="flex items-start gap-2.5 min-w-0">
+                                    <div 
+                                        class="w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black shrink-0 shadow-2xs"
+                                        :class="appliedCoupon && appliedCoupon.coupon_code === cp.code 
+                                            ? 'bg-emerald-500 text-white' 
+                                            : (totalPrice >= cp.min_order_amount ? 'bg-gradient-to-br from-red-500 to-amber-500 text-white' : 'bg-gray-200 text-gray-500')"
+                                    >
+                                        <span>🎟️</span>
+                                    </div>
+
+                                    <div class="space-y-0.5 min-w-0">
+                                        <div class="flex items-center gap-1.5">
+                                            <span 
+                                                class="font-black text-xs font-mono px-1.5 py-0.5 rounded-md border tracking-wider"
+                                                :class="appliedCoupon && appliedCoupon.coupon_code === cp.code 
+                                                    ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
+                                                    : (totalPrice >= cp.min_order_amount ? 'bg-red-50 text-red-700 border-red-200' : 'bg-gray-100 text-gray-600 border-gray-200')"
+                                                x-text="cp.code"
+                                            ></span>
+                                            <span 
+                                                class="text-xs font-extrabold text-gray-900 truncate" 
+                                                x-text="cp.type === 'percent' ? ('Giảm ' + cp.value + '%' + (cp.max_discount ? ' (Tối đa ' + formatCurrency(cp.max_discount) + ')' : '')) : ('Giảm ' + formatCurrency(cp.value))"
+                                            ></span>
+                                        </div>
+
+                                        <p class="text-[11px] text-gray-500 truncate" x-text="cp.name"></p>
+
+                                        <!-- Điều kiện áp dụng -->
+                                        <div class="text-[10px] font-bold flex items-center gap-1 pt-0.5">
+                                            <template x-if="totalPrice >= cp.min_order_amount">
+                                                <span class="text-emerald-600 flex items-center gap-0.5">
+                                                    <span>✓</span> Đơn từ <span x-text="formatCurrency(cp.min_order_amount)"></span>
+                                                </span>
+                                            </template>
+                                            <template x-if="totalPrice < cp.min_order_amount">
+                                                <span class="text-amber-700 bg-amber-50 border border-amber-200/80 px-1.5 py-0.2 rounded">
+                                                    ⚠️ Mua thêm <strong x-text="formatCurrency(cp.min_order_amount - totalPrice)"></strong> để dùng
+                                                </span>
+                                            </template>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Right side: Action Button -->
+                                <div class="shrink-0">
+                                    <template x-if="appliedCoupon && appliedCoupon.coupon_code === cp.code">
+                                        <button 
+                                            @click="removeCoupon()" 
+                                            type="button" 
+                                            class="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-rose-600 text-white text-xs font-black transition-all cursor-pointer shadow-2xs group flex items-center gap-1"
+                                            title="Bấm để hủy mã"
+                                        >
+                                            <span class="group-hover:hidden">Đang Dùng ✓</span>
+                                            <span class="hidden group-hover:inline">Huỷ mã ✕</span>
+                                        </button>
+                                    </template>
+
+                                    <template x-if="!(appliedCoupon && appliedCoupon.coupon_code === cp.code) && totalPrice >= cp.min_order_amount">
+                                        <button 
+                                            @click="applyDirectCode(cp.code)" 
+                                            type="button" 
+                                            :disabled="isApplyingCoupon"
+                                            class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white text-xs font-black transition-all active:scale-95 cursor-pointer shadow-xs disabled:opacity-50"
+                                        >
+                                            Áp Dụng
+                                        </button>
+                                    </template>
+
+                                    <template x-if="!(appliedCoupon && appliedCoupon.coupon_code === cp.code) && totalPrice < cp.min_order_amount">
+                                        <button 
+                                            type="button" 
+                                            disabled
+                                            class="px-2.5 py-1.5 rounded-xl bg-gray-100 text-gray-400 text-[11px] font-bold cursor-not-allowed border border-gray-200"
+                                        >
+                                            Chưa đủ
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
                         </template>
-                        <template x-if="appliedCoupon">
-                            <button 
-                                @click="removeCoupon()"
-                                type="button" 
-                                class="px-3 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors shrink-0 cursor-pointer"
+                    </div>
+
+                    <!-- HOẶC NHẬP MÃ THỦ CÔNG (Cho mã bí mật / sự kiện) -->
+                    <div class="pt-1">
+                        <div class="text-[11px] font-bold text-gray-500 mb-1.5">Hoặc nhập mã voucher khác:</div>
+                        <div class="flex items-center gap-2">
+                            <input 
+                                type="text" 
+                                x-model="couponInput"
+                                placeholder="Nhập mã (VD: GAO20K)..."
+                                :disabled="appliedCoupon !== null"
+                                class="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-xs sm:text-sm font-bold uppercase tracking-wider focus:outline-none focus:border-red-500 font-mono disabled:bg-gray-100"
                             >
-                                ✕ Huỷ mã
-                            </button>
-                        </template>
+                            <template x-if="!appliedCoupon">
+                                <button 
+                                    @click="applyCouponCode()"
+                                    type="button" 
+                                    :disabled="isApplyingCoupon"
+                                    class="px-4 py-2.5 rounded-xl bg-gray-900 hover:bg-black text-white text-xs font-black transition-colors shrink-0 disabled:opacity-50 cursor-pointer"
+                                >
+                                    <span x-show="!isApplyingCoupon">Áp Dụng</span>
+                                    <span x-show="isApplyingCoupon">Đang check...</span>
+                                </button>
+                            </template>
+                            <template x-if="appliedCoupon">
+                                <button 
+                                    @click="removeCoupon()"
+                                    type="button" 
+                                    class="px-3 py-2.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-bold transition-colors shrink-0 cursor-pointer"
+                                >
+                                    ✕ Huỷ mã
+                                </button>
+                            </template>
+                        </div>
                     </div>
 
                     <div x-show="couponSuccess" class="text-[11px] font-bold text-emerald-600 flex items-center gap-1">
@@ -465,9 +576,21 @@
                     <button 
                         @click="submitOrder()" 
                         type="button" 
-                        class="w-full py-4 rounded-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-black text-base tracking-wide uppercase shadow-xl red-glow text-center transition-all active:scale-95 cursor-pointer"
+                        :disabled="isSubmitting"
+                        class="w-full py-4 rounded-full bg-gradient-to-r from-red-600 to-red-500 hover:from-red-700 hover:to-red-600 text-white font-black text-base tracking-wide uppercase shadow-xl red-glow text-center transition-all active:scale-95 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center gap-2"
                     >
-                        Xác nhận đặt đơn
+                        <template x-if="isSubmitting">
+                            <span class="inline-flex items-center gap-2.5">
+                                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span>Đang xử lý đặt đơn...</span>
+                            </span>
+                        </template>
+                        <template x-if="!isSubmitting">
+                            <span>Xác nhận đặt đơn</span>
+                        </template>
                     </button>
                 @endif
             </div>

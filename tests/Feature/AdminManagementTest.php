@@ -233,6 +233,43 @@ test('admin can filter, sort and perform bulk actions on products', function () 
     foreach ($ids as $id) {
         expect(Product::find($id)->is_available)->toBeTrue();
     }
+
+    // 4. Bulk action: Bật gợi ý hàng loạt
+    $bulkUpsellEnable = $this->actingAs($admin)->post(route('admin.products.bulk-action'), [
+        'ids' => $ids,
+        'action' => 'upsell_enable',
+    ]);
+    $bulkUpsellEnable->assertRedirect();
+    foreach ($ids as $id) {
+        expect(Product::find($id)->is_upsell)->toBeTrue();
+    }
+
+    // 5. Bulk action: Tắt gợi ý hàng loạt
+    $bulkUpsellDisable = $this->actingAs($admin)->post(route('admin.products.bulk-action'), [
+        'ids' => $ids,
+        'action' => 'upsell_disable',
+    ]);
+    $bulkUpsellDisable->assertRedirect();
+    foreach ($ids as $id) {
+        expect(Product::find($id)->is_upsell)->toBeFalse();
+    }
+});
+
+test('admin can toggle product upsell status via json', function () {
+    $admin = User::where('email', 'admin@gao.vn')->first();
+    $product = Product::first();
+
+    $initialUpsell = (bool) $product->is_upsell;
+    $response = $this->actingAs($admin)->patchJson(route('admin.products.toggle-upsell', $product->id));
+
+    $response->assertStatus(200)
+        ->assertJson([
+            'success' => true,
+            'is_upsell' => ! $initialUpsell,
+        ]);
+
+    $product->refresh();
+    expect((bool) $product->is_upsell)->toBe(! $initialUpsell);
 });
 
 test('admin can create, update, toggle and delete categories', function () {

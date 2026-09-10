@@ -159,19 +159,42 @@ class OrderAdminController extends Controller
         $request->validate([
             'order_status' => ['required', 'string', 'in:pending,confirmed,preparing,delivering,completed,cancelled'],
             'payment_status' => ['nullable', 'string', 'in:pending,paid'],
+            'cancellation_reason' => ['nullable', 'string', 'max:255'],
         ]);
 
         $order = Order::findOrFail($id);
 
+        $newStatus = $request->input('order_status');
+
+        // Chặn thay đổi trạng thái nếu đơn đã ở trạng thái kết thúc (completed hoặc cancelled)
+        if (in_array($order->order_status, ['completed', 'cancelled'], true) && $order->order_status !== $newStatus) {
+            $errorMessage = "Đơn hàng #{$order->order_code} đã ở trạng thái kết thúc [{$order->status_label}], không thể thay đổi trạng thái!";
+
+            if ($request->expectsJson() || $request->ajax()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMessage,
+                    'order_id' => $order->id,
+                    'order_status' => $order->order_status,
+                ], 422);
+            }
+
+            return back()->with('error', $errorMessage);
+        }
+
         $updateData = [
-            'order_status' => $request->input('order_status'),
+            'order_status' => $newStatus,
         ];
+
+        if ($request->filled('cancellation_reason')) {
+            $updateData['cancellation_reason'] = $request->input('cancellation_reason');
+        }
 
         if ($request->filled('payment_status')) {
             $updateData['payment_status'] = $request->input('payment_status');
         }
 
-        if ($request->input('order_status') === 'completed') {
+        if ($newStatus === 'completed') {
             $updateData['payment_status'] = 'paid';
         }
 
@@ -186,6 +209,7 @@ class OrderAdminController extends Controller
                 'order_status' => $order->order_status,
                 'status_label' => $order->status_label,
                 'status_color' => $order->status_color,
+                'cancellation_reason' => $order->cancellation_reason,
                 'payment_status' => $order->payment_status,
                 'is_paid' => ($order->payment_status === 'paid'),
             ]);

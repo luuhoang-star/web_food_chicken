@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Benefit;
+use App\Models\Category;
 use App\Models\Hero;
 use App\Models\SiteSetting;
 use App\Models\Testimonial;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class ContentAdminController extends Controller
@@ -22,12 +25,14 @@ class ContentAdminController extends Controller
         $hero = Hero::first();
         $benefits = Benefit::ordered()->get();
         $testimonials = Testimonial::ordered()->get();
+        $categories = Category::active()->ordered()->get();
         $settings = SiteSetting::allKeyed();
 
         return view('admin.content.index', [
             'hero' => $hero,
             'benefits' => $benefits,
             'testimonials' => $testimonials,
+            'categories' => $categories,
             'settings' => $settings,
         ]);
     }
@@ -38,27 +43,65 @@ class ContentAdminController extends Controller
     public function updateHero(Request $request): JsonResponse|RedirectResponse
     {
         $request->validate([
-            'badge' => ['required', 'string'],
+            'badge' => ['nullable', 'string'],
             'title' => ['required', 'string'],
-            'title_highlight' => ['required', 'string'],
-            'description' => ['required', 'string'],
+            'title_highlight' => ['nullable', 'string'],
+            'description' => ['nullable', 'string'],
+            'subtitle' => ['nullable', 'string'],
+            'cta_primary_text' => ['nullable', 'string'],
+            'cta_primary_url' => ['nullable', 'string'],
+            'cta_secondary_text' => ['nullable', 'string'],
+            'cta_secondary_url' => ['nullable', 'string'],
+            'delivery_time' => ['nullable', 'string'],
+            'hot_status' => ['nullable', 'string'],
+            'rating' => ['nullable', 'string'],
+            'price' => ['nullable', 'numeric'],
+            'floating_badge' => ['nullable', 'string'],
+            'image' => ['nullable', 'string'],
+            'hero_image_file' => ['nullable', 'image', 'max:5120'],
             'stat_number' => ['nullable', 'string'],
             'stat_label' => ['nullable', 'string'],
         ]);
 
         $hero = Hero::first() ?: new Hero;
-        $hero->fill($request->only([
+
+        $fillableData = $request->only([
             'badge',
             'title',
             'title_highlight',
+            'cta_primary_text',
+            'cta_primary_url',
+            'cta_secondary_text',
+            'cta_secondary_url',
+            'delivery_time',
+            'hot_status',
+            'rating',
+            'price',
+            'floating_badge',
+            'image',
             'stat_number',
             'stat_label',
-        ]));
+        ]);
+
+        if ($request->hasFile('hero_image_file')) {
+            $file = $request->file('hero_image_file');
+            $uploadDir = public_path('images/heroes');
+            if (! File::isDirectory($uploadDir)) {
+                File::makeDirectory($uploadDir, 0755, true);
+            }
+            $fileName = 'hero_'.time().'_'.Str::random(6).'.'.$file->getClientOriginalExtension();
+            $file->move($uploadDir, $fileName);
+            $fillableData['image'] = 'images/heroes/'.$fileName;
+        }
+
+        $hero->fill($fillableData);
+
         if ($request->filled('description')) {
             $hero->subtitle = $request->input('description');
         } elseif ($request->filled('subtitle')) {
             $hero->subtitle = $request->input('subtitle');
         }
+
         $hero->is_active = true;
         $hero->save();
 
@@ -70,7 +113,9 @@ class ContentAdminController extends Controller
             ]);
         }
 
-        return back()->with('success', 'Đã cập nhật nội dung Banner Hero thành công!');
+        $redirectTo = $request->input('_redirect_to', route('admin.content.index', ['tab' => 'hero']));
+
+        return redirect($redirectTo)->with('success', 'Đã cập nhật nội dung Banner Hero thành công!');
     }
 
     /**

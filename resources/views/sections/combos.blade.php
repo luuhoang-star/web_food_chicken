@@ -4,8 +4,8 @@
         
         <!-- Section Header -->
         <x-section-heading 
-            title="ĂN COMBO, LỜI HƠN"
-            subtitle="Tiết kiệm tới 55.000đ khi đi theo nhóm, ăn no nê cùng bạn bè & người thân."
+            :title="$settings['home_combos_title'] ?? 'ĂN COMBO, LỜI HƠN'"
+            :subtitle="$settings['home_combos_subtitle'] ?? 'Tiết kiệm tới 55.000đ khi đi theo nhóm, ăn no nê cùng bạn bè & người thân.'"
             class="mb-14"
         />
 

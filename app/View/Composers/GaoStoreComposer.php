@@ -3,6 +3,7 @@
 namespace App\View\Composers;
 
 use App\Models\Category;
+use App\Models\Coupon;
 use App\Models\Product;
 use App\Models\Sauce;
 use App\Models\SiteSetting;
@@ -63,8 +64,12 @@ class GaoStoreComposer
                 'upsellItems' => Product::with(['category', 'sauce', 'sauces'])
                     ->upsell()
                     ->available()
-                    ->take(4)
+                    ->orderByDesc('is_upsell')
+                    ->orderBy('order')
                     ->get(),
+                'coupons' => Schema::hasTable('coupons')
+                    ? Coupon::active()->orderBy('min_order_amount', 'asc')->get()
+                    : collect(),
                 'allProducts' => Product::with(['category', 'sauce', 'sauces'])
                     ->available()
                     ->withSum(['orderItems as sold_count' => function ($q) {

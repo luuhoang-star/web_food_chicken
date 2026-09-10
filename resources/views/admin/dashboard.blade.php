@@ -13,6 +13,10 @@
         copyToast: '',
         orderStatuses: {},
         pendingCount: {{ $pendingOrdersCount }},
+        urgentCount: {{ $urgentOrdersCount }},
+        urgentThresholdMinutes: {{ $urgentThresholdMinutes }},
+        cancelDialogOrder: null,
+        cancelReasonText: 'Khách yêu cầu huỷ',
         
         chartLabels: {{ json_encode($chartLabels) }},
         chartRevenues: {{ json_encode($chartRevenues) }},
@@ -30,7 +34,32 @@
             const isRevenue = this.chartMode === 'revenue';
             const dataValues = isRevenue ? this.chartRevenues : this.chartOrders;
             const color = isRevenue ? '#dc2626' : '#2563eb';
-            const bgColor = isRevenue ? 'rgba(220, 38, 38, 0.08)' : 'rgba(37, 99, 235, 0.08)';
+            const bgColor = isRevenue ? 'rgba(220, 38, 38, 0.06)' : 'rgba(37, 99, 235, 0.06)';
+            
+            // TỰ ĐỘNG SCALE TRỤC Y VỚI KHOẢNG ĐỆM 15-20% VÀ LÀM TRÒN MỐC PHÙ HỢP
+            const maxVal = Math.max(...dataValues, isRevenue ? 50000 : 3);
+            let suggestedMax;
+            if (isRevenue) {
+                const paddedMax = maxVal * 1.18;
+                if (paddedMax <= 100000) {
+                    suggestedMax = Math.ceil(paddedMax / 20000) * 20000;
+                } else if (paddedMax <= 500000) {
+                    suggestedMax = Math.ceil(paddedMax / 50000) * 50000;
+                } else if (paddedMax <= 2000000) {
+                    suggestedMax = Math.ceil(paddedMax / 100000) * 100000;
+                } else {
+                    suggestedMax = Math.ceil(paddedMax / 500000) * 500000;
+                }
+            } else {
+                const paddedMax = maxVal * 1.2;
+                if (paddedMax <= 10) {
+                    suggestedMax = Math.ceil(paddedMax);
+                } else if (paddedMax <= 50) {
+                    suggestedMax = Math.ceil(paddedMax / 5) * 5;
+                } else {
+                    suggestedMax = Math.ceil(paddedMax / 10) * 10;
+                }
+            }
 
             this.chartInstance = new Chart(ctx, {
                 type: 'line',
@@ -70,7 +99,7 @@
                     scales: {
                         y: {
                             beginAtZero: true,
-                            suggestedMax: isRevenue ? 500000 : 5,
+                            suggestedMax: suggestedMax,
                             grid: { color: '#f3f4f6' },
                             ticks: {
                                 precision: 0,
@@ -108,8 +137,46 @@
             this.selectedOrder = order;
         },
 
-        async updateOrderStatus(orderId, newStatus, orderCode) {
+        openCancelDialog(order) {
+            this.cancelDialogOrder = order;
+            this.cancelReasonText = 'Khách yêu cầu huỷ';
+        },
+
+        confirmCancelOrder() {
+            if (!this.cancelDialogOrder) return;
+            const order = this.cancelDialogOrder;
+            const reason = this.cancelReasonText.trim() || 'Khách yêu cầu huỷ';
+            this.cancelDialogOrder = null;
+            this.updateOrderStatus(order.id, 'cancelled', order.code, reason);
+        },
+
+        handleDropdownStatusChange(orderId, event, orderCode, currentStatus) {
+            const newStatus = event.target.value;
+            const oldStatus = this.orderStatuses[orderId]?.status || currentStatus;
+            
+            if (newStatus === oldStatus) return;
+
+            if (newStatus === 'completed') {
+                if (!confirm(`Bạn có chắc chắn muốn chuyển đơn #${orderCode} sang trạng thái: ĐÃ GIAO THÀNH CÔNG?`)) {
+                    event.target.value = oldStatus;
+                    return;
+                }
+            } else if (newStatus === 'cancelled') {
+                event.target.value = oldStatus;
+                this.openCancelDialog({ id: orderId, code: orderCode });
+                return;
+            }
+
+            this.updateOrderStatus(orderId, newStatus, orderCode);
+        },
+
+        async updateOrderStatus(orderId, newStatus, orderCode, cancellationReason = null) {
             try {
+                const bodyPayload = { order_status: newStatus };
+                if (cancellationReason) {
+                    bodyPayload.cancellation_reason = cancellationReason;
+                }
+
                 const res = await fetch(`/admin/orders/${orderId}/status`, {
                     method: 'PATCH',
                     headers: {
@@ -117,7 +184,7 @@
                         'X-CSRF-TOKEN': '{{ csrf_token() }}',
                         'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ order_status: newStatus })
+                    body: JSON.stringify(bodyPayload)
                 });
                 const data = await res.json();
                 if (data.success) {
@@ -125,7 +192,8 @@
                         status: data.order_status,
                         label: data.status_label,
                         color: data.status_color,
-                        is_paid: data.is_paid
+                        is_paid: data.is_paid,
+                        cancellation_reason: data.cancellation_reason
                     };
 
                     if (this.selectedOrder && this.selectedOrder.id === orderId) {
@@ -133,10 +201,12 @@
                         this.selectedOrder.status_label = data.status_label;
                         this.selectedOrder.status_color = data.status_color;
                         this.selectedOrder.is_paid = data.is_paid;
+                        this.selectedOrder.cancellation_reason = data.cancellation_reason;
                     }
 
                     if (newStatus === 'completed' || newStatus === 'cancelled') {
                         if (this.pendingCount > 0) this.pendingCount--;
+                        if (this.urgentCount > 0) this.urgentCount--;
                     }
 
                     this.showToast(`Đã chuyển đơn #${orderCode || data.order_code} sang: ${data.status_label}!`);
@@ -153,7 +223,14 @@
             const storeAddr = '{{ $settings['store_address'] ?? 'Quán GAO - Gà Sốt & Cơm Hà Nội' }}';
             const storePhone = '{{ $settings['hotline'] ?? '0988.868.GAO' }}';
             const codText = order.is_paid ? '0 ₫ (ĐÃ CHUYỂN KHOẢN TRƯỚC)' : order.total + ' (THU HỘ COD)';
-            const itemsTxt = order.items.map(i => i.qty + 'x ' + i.name + (i.sauce ? ' (Sốt ' + i.sauce + ')' : '')).join('; ');
+            const itemsTxt = order.items.map(i => {
+                let sauceStr = '';
+                if (i.sauce) {
+                    const cleanS = i.sauce.replace(/^sốt\s+/i, '');
+                    sauceStr = ` (Sốt ${cleanS})`;
+                }
+                return `${i.qty}x ${i.name}${sauceStr}`;
+            }).join('; ');
 
             const text = `📦 ĐƠN GIAO HÀNG GAO [#${order.code}]
 📍 Lấy hàng: ${storeAddr} (SĐT Bếp: ${storePhone})
@@ -341,37 +418,44 @@
             </div>
         </div>
 
-        <!-- CARD 3: ĐƠN CẦN XỬ LÝ (ACTIONABLE PRIORITY) -->
+        <!-- CARD 3: ĐƠN CẦN XỬ LÝ (ACTIONABLE PRIORITY - CÓ NGƯỠNG THỜI GIAN) -->
         <div 
             class="bg-white p-4 sm:p-5 rounded-2xl border-2 shadow-xs transition-all flex flex-col justify-between space-y-3"
-            :class="pendingCount > 0 ? 'border-red-400/90 bg-gradient-to-br from-red-50/50 via-white to-orange-50/30 ring-2 ring-red-500/10' : 'border-slate-200/80'"
+            :class="urgentCount > 0 ? 'border-red-500 bg-gradient-to-br from-red-50/60 via-white to-orange-50/30 ring-2 ring-red-500/20' : (pendingCount > 0 ? 'border-amber-300 bg-amber-50/20' : 'border-slate-200/80')"
         >
             <div class="flex items-center justify-between">
-                <span class="text-[11px] font-bold uppercase tracking-wider" :class="pendingCount > 0 ? 'text-red-700 font-black' : 'text-slate-500'">
+                <span class="text-[11px] font-bold uppercase tracking-wider" :class="urgentCount > 0 ? 'text-red-700 font-black' : (pendingCount > 0 ? 'text-amber-800 font-black' : 'text-slate-500')">
                     Đơn cần xử lý ngay
                 </span>
                 <div class="relative">
-                    <div class="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 border border-amber-100 flex items-center justify-center text-sm font-bold shadow-2xs">
+                    <div class="w-8 h-8 rounded-xl border flex items-center justify-center text-sm font-bold shadow-2xs" :class="urgentCount > 0 ? 'bg-red-50 text-red-600 border-red-100' : 'bg-amber-50 text-amber-600 border-amber-100'">
                         ⚡
                     </div>
-                    <span x-show="pendingCount > 0" class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-600 animate-ping"></span>
+                    <!-- Chỉ nhấp nháy đỏ báo động khi có đơn chờ quá ngưỡng thời gian (10 phút) -->
+                    <span x-show="urgentCount > 0" class="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-red-600 animate-ping"></span>
                 </div>
             </div>
             <div>
                 <span 
                     class="text-2xl sm:text-3xl font-black tracking-tight block"
-                    :class="pendingCount > 0 ? 'text-red-600' : 'text-slate-900'"
+                    :class="urgentCount > 0 ? 'text-red-600' : (pendingCount > 0 ? 'text-slate-900' : 'text-slate-900')"
                     x-text="pendingCount + ' đơn'"
                 >
                     {{ $pendingOrdersCount }} đơn
                 </span>
             </div>
             <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                <template x-if="pendingCount > 0">
-                    <a href="#urgent-queue" class="font-black text-red-600 hover:text-red-700 flex items-center gap-1">
-                        <span>Xử lý ngay</span>
-                        <span>→</span>
-                    </a>
+                <template x-if="urgentCount > 0">
+                    <span class="font-black text-red-600 flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-red-600 animate-pulse inline-block"></span>
+                        <span x-text="urgentCount + ' đơn chờ > ' + urgentThresholdMinutes + 'p'"></span>
+                    </span>
+                </template>
+                <template x-if="urgentCount === 0 && pendingCount > 0">
+                    <span class="text-amber-700 font-bold flex items-center gap-1">
+                        <span>🕒</span>
+                        <span>Đơn mới trong hạn bình thường</span>
+                    </span>
                 </template>
                 <template x-if="pendingCount === 0">
                     <span class="text-emerald-600 font-bold flex items-center gap-1">
@@ -399,13 +483,10 @@
                 </span>
             </div>
             <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
-                <span class="text-slate-600 font-medium">
-                    @php
-                        $rate = ($periodOrdersCount > 0) ? round(($completedOrdersCount / $periodOrdersCount) * 100) : 100;
-                    @endphp
-                    <strong class="text-emerald-600 font-bold">{{ $rate }}%</strong> giao thành công
+                <span class="text-slate-600 font-medium truncate" title="Tỷ lệ hoàn thành: {{ $completedOrdersCount }}/{{ $periodOrdersCount }} đơn ({{ $completionRate }}%)">
+                    Tỷ lệ hoàn thành: <strong class="text-emerald-600 font-bold">{{ $completedOrdersCount }}/{{ $periodOrdersCount }} đơn</strong> ({{ $completionRate }}%)
                 </span>
-                <span class="text-slate-400 text-[10px]">Hiệu suất</span>
+                <span class="text-slate-400 text-[10px] shrink-0">Hiệu suất</span>
             </div>
         </div>
 
@@ -417,10 +498,13 @@
         <div class="flex items-center justify-between border-b border-slate-100 pb-3.5">
             <div class="flex items-center gap-2.5">
                 <h2 class="text-sm sm:text-base font-black text-slate-900 flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-red-600 inline-block animate-pulse"></span>
+                    <span class="w-2.5 h-2.5 rounded-full inline-block" :class="urgentCount > 0 ? 'bg-red-600 animate-ping' : (pendingCount > 0 ? 'bg-amber-500' : 'bg-emerald-500')"></span>
                     <span>Đơn hàng đang chờ xử lý</span>
-                    <span class="px-2.5 py-0.5 rounded-full text-xs font-black" :class="pendingCount > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600'" x-text="pendingCount + ' đơn'">
+                    <span class="px-2.5 py-0.5 rounded-full text-xs font-black" :class="urgentCount > 0 ? 'bg-red-100 text-red-700' : (pendingCount > 0 ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600')" x-text="pendingCount + ' đơn'">
                     </span>
+                    <template x-if="urgentCount > 0">
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-600 text-white animate-pulse" x-text="urgentCount + ' đơn quá ' + urgentThresholdMinutes + 'p!'"></span>
+                    </template>
                 </h2>
             </div>
 
@@ -438,11 +522,16 @@
                         $groupedActionItems = [];
                         foreach ($order->items as $it) {
                             $sauce = trim((string) ($it->sauce ?? ''));
-                            $key = $it->product_name . ($sauce ? " ($sauce)" : '');
-                            $groupedActionItems[$key] = ($groupedActionItems[$key] ?? 0) + (int) $it->quantity;
+                            $cleanSauce = preg_replace('/^sốt\s+/iu', '', $sauce);
+                            $hasSauceInTitle = ($cleanSauce !== '' && mb_stripos($it->product_name, $cleanSauce) !== false);
+                            $sauceLabel = (!$hasSauceInTitle && $cleanSauce !== '') ? " (Sốt {$cleanSauce})" : '';
+                            $dishName = $it->product_name . $sauceLabel;
+                            $groupedActionItems[$dishName] = ($groupedActionItems[$dishName] ?? 0) + (int) $it->quantity;
                         }
-                        $itemsTxt = collect($groupedActionItems)->map(fn($qty, $name) => "{$name} ×{$qty}")->implode(', ');
                         $isPaid = ($order->payment_status === 'paid');
+                        $minutesAgo = $order->created_at ? (int) abs(now()->diffInMinutes($order->created_at)) : 0;
+                        $timeWait = $minutesAgo < 1 ? 'Vừa xong' : ($minutesAgo < 60 ? $minutesAgo . 'p trước' : (int) ($minutesAgo / 60) . 'h trước');
+                        $isUrgent = ($order->order_status === 'pending' && $minutesAgo >= $urgentThresholdMinutes);
                         
                         $modalPayload = [
                             'id' => $order->id,
@@ -460,26 +549,33 @@
                             'is_paid' => $isPaid,
                             'shipping_text' => (float) $order->shipping_fee === 0.0 ? 'Freeship' : 'Phí ship ' . number_format((float) $order->shipping_fee, 0, ',', '.') . ' ₫',
                             'total' => number_format((float) $order->total_amount, 0, ',', '.') . ' ₫',
+                            'cancellation_reason' => $order->cancellation_reason,
                             'items' => $order->items->map(fn($item) => [
                                 'name' => $item->product_name,
                                 'qty' => $item->quantity,
                                 'sauce' => $item->sauce,
-                                'toppings' => $item->toppings,
+                                'toppings' => $item->formatted_toppings,
                                 'price' => number_format((float) ($item->total_item_price ?: ($item->price * $item->quantity)), 0, ',', '.') . ' ₫'
                             ])
                         ];
                     @endphp
                     <div 
-                        class="p-4 rounded-2xl border border-slate-200/90 bg-slate-50/40 hover:bg-white hover:border-slate-300 transition-all space-y-3 flex flex-col justify-between shadow-2xs"
+                        class="p-4 rounded-2xl border transition-all space-y-3 flex flex-col justify-between shadow-2xs {{ $isUrgent ? 'border-red-400 bg-red-50/30 hover:bg-white' : 'border-slate-200/90 bg-slate-50/40 hover:bg-white hover:border-slate-300' }}"
                         x-show="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') !== 'completed' && (orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') !== 'cancelled'"
                     >
                         
-                        <div class="space-y-2">
+                        <div class="space-y-2.5">
                             <!-- Top: Mã đơn & Trạng thái -->
                             <div class="flex items-center justify-between">
-                                <span class="font-mono font-black text-xs text-slate-900 block">
-                                    #{{ $order->order_code }}
-                                </span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-mono font-black text-xs text-slate-900 block">
+                                        #{{ $order->order_code }}
+                                    </span>
+                                    <span class="text-[10px] text-slate-500 font-medium {{ $isUrgent ? 'text-red-600 font-bold' : '' }}">⏱️ {{ $timeWait }}</span>
+                                    @if($isUrgent)
+                                        <span class="px-1.5 py-0.2 rounded bg-red-600 text-white font-black text-[9px] uppercase animate-pulse">Quá {{ $urgentThresholdMinutes }}p</span>
+                                    @endif
+                                </div>
                                 <span 
                                     class="text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-2xs" 
                                     :class="orderStatuses[{{ $order->id }}]?.color || '{{ $order->status_color }}'"
@@ -492,7 +588,7 @@
                             <div class="text-xs space-y-1">
                                 <div class="flex items-center justify-between">
                                     <strong class="text-slate-900 font-black text-xs uppercase">{{ $order->customer_name }}</strong>
-                                    <a href="tel:{{ $order->customer_phone }}" class="text-red-600 font-mono font-black text-[11px] hover:underline" @click.stop>
+                                    <a href="tel:{{ $order->customer_phone }}" class="text-red-600 font-mono font-black text-[11px] hover:underline" @click.stop title="Gọi cho khách">
                                         📞 {{ $order->customer_phone }}
                                     </a>
                                 </div>
@@ -502,10 +598,17 @@
                                 </div>
                             </div>
 
-                            <!-- Món ăn -->
-                            <p class="text-xs text-slate-800 font-semibold line-clamp-2 leading-snug">
-                                🍗 {{ $itemsTxt }}
-                            </p>
+                            <!-- Món ăn dạng danh sách rõ ràng -->
+                            <div class="space-y-1 py-1 bg-white/70 p-2 rounded-xl border border-slate-100">
+                                @foreach($groupedActionItems as $dishName => $qty)
+                                    <div class="flex items-center gap-1.5 text-xs">
+                                        <span class="px-1.5 py-0.2 rounded font-mono font-black text-[10px] bg-red-50 text-red-700 border border-red-200 shrink-0">
+                                            ×{{ $qty }}
+                                        </span>
+                                        <span class="font-bold text-slate-900 truncate" title="{{ $dishName }}">{{ $dishName }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
 
                             <!-- Tiền thu -->
                             <div class="flex items-center justify-between text-xs pt-1.5 border-t border-slate-200/60">
@@ -521,7 +624,7 @@
                             </div>
                         </div>
 
-                        <!-- 1 PRIMARY CTA DUY NHẤT DỰA VÀO TRẠNG THÁI (AJAX 1-CHẠM) -->
+                        <!-- 1 PRIMARY CTA DUY NHẤT DỰA VÀO TRẠNG THÁI (AJAX 1-CHẠM) + NÚT MẮT TOOLTIP -->
                         <div class="pt-2 border-t border-dashed border-slate-200 flex items-center gap-2">
                             
                             <template x-if="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'pending'">
@@ -564,14 +667,15 @@
                                 </button>
                             </template>
 
-                            <!-- Nút xem chi tiết -->
+                            <!-- Nút xem chi tiết có Tooltip và Nhãn rõ ràng -->
                             <button 
                                 type="button" 
                                 @click="openDetailModal({{ json_encode($modalPayload) }})"
-                                class="px-2.5 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold transition-colors cursor-pointer shadow-2xs"
-                                title="Xem chi tiết đơn"
+                                class="px-3 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-xs font-bold transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
+                                title="Xem chi tiết đơn (#{{ $order->order_code }})"
                             >
-                                👁️
+                                <span>👁️</span>
+                                <span class="hidden sm:inline">Chi tiết</span>
                             </button>
                         </div>
 
@@ -687,15 +791,15 @@
         </div>
 
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
+            <table class="w-full text-left text-xs min-w-[760px]">
                 <thead class="bg-slate-50/90 text-slate-500 uppercase tracking-wider text-[10px] font-black border-b border-slate-100">
                     <tr>
-                        <th class="px-4 py-3">Đơn</th>
-                        <th class="px-4 py-3">Khách</th>
-                        <th class="px-4 py-3">Món</th>
-                        <th class="px-4 py-3 text-right">Tổng</th>
-                        <th class="px-4 py-3">Trạng Thái</th>
-                        <th class="px-4 py-3 text-right">Thao Tác</th>
+                        <th class="px-4 py-3 w-[110px] whitespace-nowrap">Đơn</th>
+                        <th class="px-4 py-3 w-[150px] whitespace-nowrap">Khách</th>
+                        <th class="px-4 py-3 min-w-[200px]">Món</th>
+                        <th class="px-4 py-3 w-[110px] text-right whitespace-nowrap">Tổng Thu</th>
+                        <th class="px-4 py-3 w-[165px] text-center whitespace-nowrap">Trạng Thái</th>
+                        <th class="px-4 py-3 w-[90px] text-right whitespace-nowrap">Thao Tác</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 font-medium text-slate-700">
@@ -704,10 +808,12 @@
                             $groupedRecentItems = [];
                             foreach ($order->items as $it) {
                                 $sauce = trim((string) ($it->sauce ?? ''));
-                                $key = $it->product_name . ($sauce ? " ($sauce)" : '');
-                                $groupedRecentItems[$key] = ($groupedRecentItems[$key] ?? 0) + (int) $it->quantity;
+                                $cleanSauce = preg_replace('/^sốt\s+/iu', '', $sauce);
+                                $hasSauceInTitle = ($cleanSauce !== '' && mb_stripos($it->product_name, $cleanSauce) !== false);
+                                $sauceLabel = (!$hasSauceInTitle && $cleanSauce !== '') ? " (Sốt {$cleanSauce})" : '';
+                                $dishName = $it->product_name . $sauceLabel;
+                                $groupedRecentItems[$dishName] = ($groupedRecentItems[$dishName] ?? 0) + (int) $it->quantity;
                             }
-                            $itemsSummary = collect($groupedRecentItems)->map(fn($qty, $name) => "{$name} ×{$qty}")->implode(', ');
                             $isPaid = ($order->payment_status === 'paid');
                             
                             $rowModalPayload = [
@@ -726,11 +832,12 @@
                                 'is_paid' => $isPaid,
                                 'shipping_text' => (float) $order->shipping_fee === 0.0 ? 'Freeship' : 'Phí ship ' . number_format((float) $order->shipping_fee, 0, ',', '.') . ' ₫',
                                 'total' => number_format((float) $order->total_amount, 0, ',', '.') . ' ₫',
+                                'cancellation_reason' => $order->cancellation_reason,
                                 'items' => $order->items->map(fn($item) => [
                                     'name' => $item->product_name,
                                     'qty' => $item->quantity,
                                     'sauce' => $item->sauce,
-                                    'toppings' => $item->toppings,
+                                    'toppings' => $item->formatted_toppings,
                                     'price' => number_format((float) ($item->total_item_price ?: ($item->price * $item->quantity)), 0, ',', '.') . ' ₫'
                                 ])
                             ];
@@ -738,49 +845,86 @@
                         <tr class="hover:bg-slate-50/70 transition-colors cursor-pointer" @click="openDetailModal({{ json_encode($rowModalPayload) }})">
                             
                             <!-- Đơn -->
-                            <td class="px-4 py-3.5 whitespace-nowrap">
+                            <td class="px-4 py-3.5 whitespace-nowrap align-middle">
                                 <span class="font-black text-slate-900 font-mono text-xs block">#{{ $order->order_code }}</span>
                                 <span class="text-[10px] text-slate-400 font-mono">{{ $order->created_at ? $order->created_at->format('H:i - d/m') : '' }}</span>
                             </td>
 
                             <!-- Khách -->
-                            <td class="px-4 py-3.5 whitespace-nowrap">
-                                <span class="font-bold text-slate-900 block text-xs">{{ $order->customer_name }}</span>
-                                <span class="text-[11px] text-slate-500 font-semibold">{{ $order->district }}</span>
+                            <td class="px-4 py-3.5 whitespace-nowrap align-middle">
+                                <span class="font-bold text-slate-900 block text-xs truncate max-w-[140px]" title="{{ $order->customer_name }}">{{ $order->customer_name }}</span>
+                                <span class="text-[11px] text-slate-500 font-medium">{{ $order->district }}</span>
                             </td>
 
                             <!-- Món -->
-                            <td class="px-4 py-3.5 max-w-[220px]">
-                                <span class="font-semibold text-slate-800 block truncate" title="{{ $itemsSummary }}">
-                                    {{ $itemsSummary }}
-                                </span>
+                            <td class="px-4 py-3.5 align-middle">
+                                <div class="space-y-1">
+                                    @foreach($groupedRecentItems as $dishName => $qty)
+                                        <div class="flex items-center gap-1.5 text-xs">
+                                            <span class="px-1.5 py-0.2 rounded font-mono font-black text-[10px] bg-red-50 text-red-700 border border-red-200 shrink-0">
+                                                ×{{ $qty }}
+                                            </span>
+                                            <span class="font-bold text-slate-900 truncate max-w-[220px]" title="{{ $dishName }}">{{ $dishName }}</span>
+                                        </div>
+                                    @endforeach
+                                </div>
                             </td>
 
                             <!-- Tổng tiền -->
-                            <td class="px-4 py-3.5 whitespace-nowrap text-right">
+                            <td class="px-4 py-3.5 whitespace-nowrap text-right align-middle">
                                 <span class="font-black text-red-600 block text-xs">
                                     {{ number_format((float) $order->total_amount, 0, ',', '.') }} ₫
                                 </span>
-                                <span class="text-[10px] text-slate-400">{{ $isPaid ? 'Đã CK' : 'Thu COD' }}</span>
-                            </td>
-
-                            <!-- Trạng thái -->
-                            <td class="px-4 py-3.5 whitespace-nowrap">
-                                <span 
-                                    class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold border shadow-2xs" 
-                                    :class="orderStatuses[{{ $order->id }}]?.color || '{{ $order->status_color }}'"
-                                    x-text="orderStatuses[{{ $order->id }}]?.label || '{{ $order->status_label }}'"
-                                >
-                                    {{ $order->status_label }}
+                                <span class="inline-block px-1.5 py-0.2 rounded text-[9px] font-bold mt-0.5 {{ $isPaid ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-800 border border-amber-200' }}">
+                                    {{ $isPaid ? '💳 Đã CK' : '💵 Thu COD' }}
                                 </span>
                             </td>
 
+                            <!-- Trạng thái (Dropdown đổi nhanh kèm Confirm Dialog, Khóa khi đã Hoàn thành / Đã huỷ) -->
+                            <td class="px-4 py-3.5 whitespace-nowrap text-center align-middle" @click.stop>
+                                <template x-if="['completed', 'cancelled'].includes(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}')">
+                                    <div class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-black border shadow-2xs"
+                                        :class="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'completed' ? 'bg-emerald-50 text-emerald-900 border-emerald-300' : 'bg-rose-50 text-rose-900 border-rose-300'"
+                                        :title="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'completed' ? 'Đơn hàng đã hoàn tất (Đã chốt, không đổi trạng thái)' : 'Đơn hàng đã huỷ (Đã chốt, không đổi trạng thái)'"
+                                    >
+                                        <span class="text-[11px]">🔒</span>
+                                        <span x-text="(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'completed' ? '✅ Đã giao xong' : '❌ Đã hủy đơn'"></span>
+                                    </div>
+                                </template>
+
+                                <template x-if="!['completed', 'cancelled'].includes(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}')">
+                                    <div class="relative inline-block w-full max-w-[155px] text-left group">
+                                        <select 
+                                            :value="orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}'"
+                                            @change="handleDropdownStatusChange({{ $order->id }}, $event, '{{ $order->order_code }}', '{{ $order->order_status }}')"
+                                            class="w-full pl-2.5 pr-6 py-1 rounded-xl text-xs font-black border shadow-2xs appearance-none cursor-pointer focus:outline-none focus:ring-2 transition-all font-sans"
+                                            :class="{
+                                                'bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100 focus:ring-amber-400': (orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}') === 'pending',
+                                                'bg-orange-50 text-orange-950 border-orange-300 hover:bg-orange-100 focus:ring-orange-400': ['confirmed', 'preparing', 'processing'].includes(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}'),
+                                                'bg-blue-50 text-blue-950 border-blue-300 hover:bg-blue-100 focus:ring-blue-400': ['delivering', 'shipping'].includes(orderStatuses[{{ $order->id }}]?.status || '{{ $order->order_status }}'),
+                                            }"
+                                            title="Bấm vào để chọn đổi trạng thái đơn hàng (Có xác nhận với trạng thái cuối)"
+                                        >
+                                            <option value="pending" class="bg-white text-amber-900 font-bold py-1">🕒 Chờ xử lý (Mới)</option>
+                                            <option value="preparing" class="bg-white text-orange-900 font-bold py-1">🍳 Đang làm món</option>
+                                            <option value="delivering" class="bg-white text-blue-900 font-bold py-1">📦 Đang giao hàng</option>
+                                            <option value="completed" class="bg-white text-emerald-900 font-bold py-1">✅ Đã giao thành công</option>
+                                            <option value="cancelled" class="bg-white text-rose-900 font-bold py-1">❌ Đã hủy đơn</option>
+                                        </select>
+                                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2 text-current opacity-70 group-hover:opacity-100">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/></svg>
+                                        </div>
+                                    </div>
+                                </template>
+                            </td>
+
                             <!-- Thao tác -->
-                            <td class="px-4 py-3.5 whitespace-nowrap text-right" @click.stop>
+                            <td class="px-4 py-3.5 whitespace-nowrap text-right align-middle" @click.stop>
                                 <button 
                                     type="button" 
                                     @click="openDetailModal({{ json_encode($rowModalPayload) }})"
                                     class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors cursor-pointer shadow-2xs"
+                                    title="Xem chi tiết đơn (#{{ $order->order_code }})"
                                 >
                                     Chi tiết ↗
                                 </button>
@@ -854,91 +998,120 @@
                     </div>
                 </div>
 
-                <!-- SECTION 2: KHÁCH & GIAO HÀNG -->
-                <div class="p-3.5 sm:p-4 bg-slate-50/90 rounded-2xl border border-slate-200/80 space-y-3">
+                <!-- SECTION 2: KHÁCH HÀNG, SỐ ĐIỆN THOẠI & ĐỊA CHỈ (RÕ RÀNG, TÁCH BẠCH) -->
+                <div class="bg-slate-50/90 rounded-2xl border border-slate-200/80 p-3.5 sm:p-4 space-y-3">
                     
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-black text-sm sm:text-base text-slate-900 tracking-wide uppercase" x-text="selectedOrder?.name"></span>
-                            <a 
-                                :href="'tel:' + selectedOrder?.phone" 
-                                class="inline-flex items-center gap-1 font-mono font-black text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200/80 px-2.5 py-0.5 rounded-lg text-xs transition-colors"
-                                title="Bấm gọi trực tiếp"
-                            >
-                                <span>📞</span>
-                                <span x-text="selectedOrder?.phone"></span>
-                            </a>
+                    <!-- 2 Cột: Khách hàng & Số điện thoại -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <!-- Khách hàng -->
+                        <div class="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
+                            <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                                <span>👤</span>
+                                <span>Khách hàng</span>
+                            </span>
+                            <span class="font-black text-sm sm:text-base text-slate-900 block truncate" x-text="selectedOrder?.name"></span>
                         </div>
 
-                        <!-- Fast Action Toolbar (Gọi - Chỉ đường - Copy C) -->
-                        <div class="flex items-center gap-1.5 shrink-0">
+                        <!-- Số điện thoại -->
+                        <div class="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
+                            <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                                <span>📞</span>
+                                <span>Số điện thoại (Gọi ngay)</span>
+                            </span>
                             <a 
                                 :href="'tel:' + selectedOrder?.phone" 
-                                class="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] shadow-2xs transition-colors flex items-center gap-1"
-                                title="Gọi cho khách"
+                                class="font-mono font-black text-sm sm:text-base text-red-600 hover:text-red-700 hover:underline block truncate flex items-center gap-1"
+                                title="Bấm để gọi ngay"
                             >
-                                <span>📞</span>
-                                <span>Gọi</span>
+                                <span x-text="selectedOrder?.phone"></span>
+                                <span class="text-xs font-sans text-red-500 font-semibold">(Bấm gọi ↗)</span>
                             </a>
-                            <a 
-                                :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((selectedOrder?.address || '') + ', ' + (selectedOrder?.district || '') + ', Hà Nội')" 
-                                target="_blank" 
-                                class="px-2.5 py-1 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] shadow-2xs transition-colors flex items-center gap-1"
-                                title="Mở Google Maps chỉ đường"
-                            >
-                                <span>🗺️</span>
-                                <span>Chỉ đường</span>
-                            </a>
-                            <button 
-                                type="button" 
-                                @click="copyShipperInfo(selectedOrder)"
-                                class="px-2.5 py-1 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] shadow-2xs transition-colors flex items-center gap-1 cursor-pointer"
-                                title="Sao chép thông tin gửi shipper (Phím C)"
-                            >
-                                <span>📋</span>
-                                <span>Copy (C)</span>
-                            </button>
                         </div>
                     </div>
 
-                    <!-- Địa chỉ giao hàng -->
-                    <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-2xs flex items-start gap-2 text-xs">
-                        <span class="text-base shrink-0 leading-none">📍</span>
-                        <div class="leading-relaxed">
-                            <span class="font-black text-slate-900 text-sm" x-text="selectedOrder?.address"></span>
-                            <span class="text-slate-400 font-bold mx-1">,</span>
-                            <strong class="text-slate-800 font-bold text-sm" x-text="selectedOrder?.district"></strong>
+                    <!-- Địa chỉ giao nhận -->
+                    <div class="bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs space-y-1">
+                        <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider flex items-center gap-1.5">
+                            <span>📍</span>
+                            <span>Địa chỉ giao hàng</span>
+                        </span>
+                        <div class="text-xs sm:text-sm text-slate-900 leading-relaxed font-bold">
+                            <span x-text="selectedOrder?.address"></span><template x-if="selectedOrder?.district"><span class="text-slate-600 font-semibold" x-text="', ' + selectedOrder?.district"></span></template>
                         </div>
                     </div>
 
                     <!-- Ghi chú tài xế -->
                     <template x-if="selectedOrder?.driver_note && selectedOrder.driver_note.trim() !== ''">
-                        <div class="p-2.5 bg-amber-50 rounded-xl text-orange-950 text-xs italic font-medium border border-amber-200/90 flex items-start gap-1.5">
-                            <span class="shrink-0 font-normal">📝</span>
-                            <div>
-                                <strong class="font-bold">Ghi chú:</strong> “<span x-text="selectedOrder.driver_note"></span>”
+                        <div class="p-2.5 bg-amber-50 rounded-xl text-amber-950 text-xs font-medium border border-amber-200/90 flex items-start gap-2">
+                            <span class="shrink-0 text-base">📝</span>
+                            <div class="space-y-0.5">
+                                <span class="text-[10px] font-black text-amber-800 uppercase tracking-wide block">Ghi chú từ khách:</span>
+                                <p class="font-bold italic" x-text="'“' + selectedOrder.driver_note + '”'"></p>
                             </div>
                         </div>
                     </template>
+
+                    <!-- Nhóm 3 nút hành động (Gọi khách là NÚT CHÍNH to bản, Chỉ đường & Copy là 2 ICON BUTTON nhỏ) -->
+                    <div class="flex items-center gap-2 pt-1 border-t border-slate-200/80">
+                        <!-- Nút Gọi khách (Nút chính to bản, ưu tiên hàng đầu) -->
+                        <a 
+                            :href="'tel:' + selectedOrder?.phone" 
+                            class="flex-1 py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs shadow-xs transition-all flex items-center justify-center gap-2"
+                        >
+                            <span class="text-sm">📞</span>
+                            <span>Gọi khách ngay</span>
+                            <span class="font-mono text-[11px] opacity-90 hidden sm:inline" x-text="'(' + selectedOrder?.phone + ')'"></span>
+                        </a>
+
+                        <!-- Nút Chỉ đường (Google Maps Icon Pin đa màu chính thức, nhận diện tức thì) -->
+                        <a 
+                            :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent((selectedOrder?.address || '') + ', ' + (selectedOrder?.district || '') + ', Hà Nội')" 
+                            target="_blank" 
+                            class="p-2.5 rounded-xl bg-white hover:bg-red-50 text-slate-700 border border-slate-200 hover:border-red-300 transition-all flex items-center justify-center shadow-2xs cursor-pointer group"
+                            title="Mở Google Maps chỉ đường"
+                        >
+                            <svg class="w-5 h-5 shrink-0 transition-transform group-hover:scale-110" viewBox="0 0 92.3 132.3">
+                                <path fill="#1a73e8" d="M60.2 2.2C55.8.8 51 0 46.1 0 32 0 19.3 6.4 10.8 16.5l21.8 18.3L60.2 2.2z"/>
+                                <path fill="#ea4335" d="M10.8 16.5C4.1 24.5 0 34.9 0 46.1c0 8.7 1.7 15.7 4.6 22l28-33.3-21.8-18.3z"/>
+                                <path fill="#4285f4" d="M46.2 28.5c9.8 0 17.7 7.9 17.7 17.7 0 4.3-1.6 8.3-4.2 11.4 0 0 13.9-16.6 28-33.3C80.8 13.6 69.4 4.8 56.1 1.2L32.6 34.8c3.3-3.9 8.1-6.3 13.6-6.3z"/>
+                                <path fill="#fbbc04" d="M46.2 63.8c-9.8 0-17.7-7.9-17.7-17.7 0-4.3 1.5-8.3 4.1-11.3l-28 33.3c4.8 10.6 12.8 19.2 21 29.9l34.1-40.5c-3.3 3.9-8.1 6.3-13.5 6.3z"/>
+                                <path fill="#34a853" d="M59.6 98c15.2-23.7 32.7-33.8 32.7-51.9 0-7.8-1.9-15.1-5.1-21.6l-48.6 57.8c2.6 3.4 5.3 7.1 8 11.2 7.2 11 5.2 17.7 11.5 17.7 6.3 0 4.3-6.7 11.5-17.7z"/>
+                            </svg>
+                        </a>
+
+                        <!-- Nút Copy (Icon Button nhỏ, sắc nét) -->
+                        <button 
+                            type="button" 
+                            @click="copyShipperInfo(selectedOrder)" 
+                            class="p-2.5 rounded-xl bg-white hover:bg-purple-50 text-slate-700 border border-slate-200 hover:border-purple-300 transition-all flex items-center justify-center shadow-2xs cursor-pointer group"
+                            title="Sao chép thông tin gửi Shipper (Phím C)"
+                        >
+                            <svg class="w-5 h-5 text-slate-600 group-hover:text-purple-700 shrink-0 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </div>
 
                 </div>
 
                 <!-- SECTION 3: MÓN ĐÃ ĐẶT -->
                 <div class="space-y-2 border-t border-b border-slate-100 py-3">
+                    <span class="text-[10px] font-black uppercase text-slate-400 tracking-wider block">Danh sách món đã đặt:</span>
                     <template x-for="(it, idx) in selectedOrder?.items" :key="idx">
-                        <div class="flex justify-between items-start text-xs">
+                        <div class="flex justify-between items-start text-xs py-1 first:pt-0 last:pb-0">
                             <div class="space-y-0.5">
-                                <div class="font-bold text-slate-900 text-xs">
-                                    <span class="font-mono font-black text-red-600" x-text="it.qty + '×'"></span>
+                                <div class="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                                    <span class="font-mono font-black text-red-600 px-1.5 py-0.2 bg-red-50 border border-red-200 rounded" x-text="it.qty + '×'"></span>
                                     <span x-text="it.name"></span>
                                 </div>
-                                <div class="text-[11px] text-slate-500 font-medium" x-show="it.sauce || (it.toppings && it.toppings.length > 0)">
-                                    <span x-show="it.sauce" x-text="'Sốt: ' + it.sauce"></span>
-                                    <span x-show="it.sauce && it.toppings && it.toppings.length > 0"> · </span>
+                                <div class="text-[11px] text-slate-500 font-medium pl-6" x-show="(it.sauce && !it.name.toLowerCase().includes(it.sauce.toLowerCase().replace(/^sốt\s+/, ''))) || (it.toppings && it.toppings.length > 0)">
+                                    <span x-show="it.sauce && !it.name.toLowerCase().includes(it.sauce.toLowerCase().replace(/^sốt\s+/, ''))" x-text="it.sauce.toLowerCase().startsWith('sốt') ? it.sauce : 'Sốt ' + it.sauce"></span>
+                                    <span x-show="(it.sauce && !it.name.toLowerCase().includes(it.sauce.toLowerCase().replace(/^sốt\s+/, ''))) && it.toppings && it.toppings.length > 0"> · </span>
                                     <span x-show="it.toppings && it.toppings.length > 0" x-text="'Topping: ' + (Array.isArray(it.toppings) ? it.toppings.join(', ') : it.toppings)"></span>
                                 </div>
                             </div>
-                            <span class="font-bold font-mono text-slate-900 text-xs shrink-0 pl-2" x-text="it.price"></span>
+                            <span class="font-bold text-slate-900 text-xs shrink-0 pl-2" x-text="it.price"></span>
                         </div>
                     </template>
                 </div>
@@ -966,36 +1139,67 @@
                     </div>
                 </div>
 
-                <!-- SECTION 5: WORKFLOW PROGRESS PIPELINE -->
-                <div class="flex items-center justify-between text-[11px] font-bold p-2.5 rounded-xl bg-slate-50 border border-slate-200">
-                    <div class="flex items-center gap-1.5" :class="selectedOrder?.status === 'pending' ? 'text-amber-800 font-black' : 'text-slate-500'">
-                        <span class="w-2 h-2 rounded-full" :class="selectedOrder?.status === 'pending' ? 'bg-amber-500 ring-2 ring-amber-200 animate-pulse' : (['confirmed', 'preparing', 'processing', 'delivering', 'shipping', 'completed'].includes(selectedOrder?.status) ? 'bg-emerald-500' : 'bg-slate-400')"></span>
-                        <span>Đã đặt</span>
+                <!-- CẢNH BÁO / LÝ DO HUỶ ĐƠN NẾU CÓ -->
+                <template x-if="selectedOrder?.status === 'cancelled' && selectedOrder?.cancellation_reason">
+                    <div class="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-xs space-y-1">
+                        <span class="text-[10px] font-black uppercase text-rose-800 tracking-wider flex items-center gap-1">
+                            <span>❌</span>
+                            <span>Lý do huỷ đơn:</span>
+                        </span>
+                        <p class="font-bold text-rose-900" x-text="selectedOrder.cancellation_reason"></p>
                     </div>
-                    <span class="text-slate-300 text-xs">→</span>
+                </template>
 
-                    <div class="flex items-center gap-1.5" :class="['confirmed', 'preparing', 'processing'].includes(selectedOrder?.status) ? 'text-orange-800 font-black' : (['delivering', 'shipping', 'completed'].includes(selectedOrder?.status) ? 'text-slate-500' : 'text-slate-400')">
-                        <span class="w-2 h-2 rounded-full" :class="['confirmed', 'preparing', 'processing'].includes(selectedOrder?.status) ? 'bg-orange-500 ring-2 ring-orange-200 animate-pulse' : (['delivering', 'shipping', 'completed'].includes(selectedOrder?.status) ? 'bg-emerald-500' : 'bg-slate-300')"></span>
-                        <span>Đang làm</span>
-                    </div>
-                    <span class="text-slate-300 text-xs">→</span>
+                <!-- SECTION 5: WORKFLOW PROGRESS PIPELINE (CẢI TIẾN: NỐI XANH, HIGHLIGHT BƯỚC HIỆN TẠI) -->
+                <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                    <div class="flex items-center justify-between text-[11px] font-bold">
+                        <!-- Bước 1: Đã đặt -->
+                        <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all"
+                            :class="selectedOrder?.status === 'pending' ? 'bg-amber-100/80 text-amber-900 ring-1 ring-amber-400 font-black' : (['confirmed', 'preparing', 'processing', 'delivering', 'shipping', 'completed'].includes(selectedOrder?.status) ? 'text-emerald-700' : 'text-slate-400')"
+                        >
+                            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :class="selectedOrder?.status === 'pending' ? 'bg-amber-500 ring-4 ring-amber-300/40 animate-pulse' : (['confirmed', 'preparing', 'processing', 'delivering', 'shipping', 'completed'].includes(selectedOrder?.status) ? 'bg-emerald-500' : 'bg-slate-300')"></span>
+                            <span>Đã đặt</span>
+                        </div>
 
-                    <div class="flex items-center gap-1.5" :class="['delivering', 'shipping'].includes(selectedOrder?.status) ? 'text-blue-800 font-black' : (selectedOrder?.status === 'completed' ? 'text-slate-500' : 'text-slate-400')">
-                        <span class="w-2 h-2 rounded-full" :class="['delivering', 'shipping'].includes(selectedOrder?.status) ? 'bg-blue-500 ring-2 ring-blue-200 animate-pulse' : (selectedOrder?.status === 'completed' ? 'bg-emerald-500' : 'bg-slate-300')"></span>
-                        <span>Đang giao</span>
-                    </div>
-                    <span class="text-slate-300 text-xs">→</span>
+                        <!-- Đường nối 1 -->
+                        <div class="flex-1 h-0.5 mx-1 rounded-full" :class="['confirmed', 'preparing', 'processing', 'delivering', 'shipping', 'completed'].includes(selectedOrder?.status) ? 'bg-emerald-500' : 'bg-slate-200'"></div>
 
-                    <div class="flex items-center gap-1.5" :class="selectedOrder?.status === 'completed' ? 'text-emerald-800 font-black' : 'text-slate-400'">
-                        <span class="w-2 h-2 rounded-full" :class="selectedOrder?.status === 'completed' ? 'bg-emerald-500 ring-2 ring-emerald-200' : 'bg-slate-300'"></span>
-                        <span>Hoàn thành</span>
+                        <!-- Bước 2: Đang làm -->
+                        <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all"
+                            :class="['confirmed', 'preparing', 'processing'].includes(selectedOrder?.status) ? 'bg-orange-100/80 text-orange-950 ring-1 ring-orange-400 font-black' : (['delivering', 'shipping', 'completed'].includes(selectedOrder?.status) ? 'text-emerald-700' : 'text-slate-400')"
+                        >
+                            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :class="['confirmed', 'preparing', 'processing'].includes(selectedOrder?.status) ? 'bg-orange-500 ring-4 ring-orange-300/40 animate-pulse' : (['delivering', 'shipping', 'completed'].includes(selectedOrder?.status) ? 'bg-emerald-500' : 'bg-slate-300')"></span>
+                            <span>Đang làm</span>
+                        </div>
+
+                        <!-- Đường nối 2 -->
+                        <div class="flex-1 h-0.5 mx-1 rounded-full" :class="['delivering', 'shipping', 'completed'].includes(selectedOrder?.status) ? 'bg-emerald-500' : 'bg-slate-200'"></div>
+
+                        <!-- Bước 3: Đang giao -->
+                        <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all"
+                            :class="['delivering', 'shipping'].includes(selectedOrder?.status) ? 'bg-blue-100/80 text-blue-950 ring-1 ring-blue-400 font-black' : (selectedOrder?.status === 'completed' ? 'text-emerald-700' : 'text-slate-400')"
+                        >
+                            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :class="['delivering', 'shipping'].includes(selectedOrder?.status) ? 'bg-blue-500 ring-4 ring-blue-300/40 animate-pulse' : (selectedOrder?.status === 'completed' ? 'bg-emerald-500' : 'bg-slate-300')"></span>
+                            <span>Đang giao</span>
+                        </div>
+
+                        <!-- Đường nối 3 -->
+                        <div class="flex-1 h-0.5 mx-1 rounded-full" :class="selectedOrder?.status === 'completed' ? 'bg-emerald-500' : 'bg-slate-200'"></div>
+
+                        <!-- Bước 4: Hoàn thành -->
+                        <div class="flex items-center gap-1.5 px-2 py-1 rounded-lg transition-all"
+                            :class="selectedOrder?.status === 'completed' ? 'bg-emerald-100/80 text-emerald-950 ring-1 ring-emerald-400 font-black' : 'text-slate-400'"
+                        >
+                            <span class="w-2.5 h-2.5 rounded-full flex-shrink-0" :class="selectedOrder?.status === 'completed' ? 'bg-emerald-500 ring-4 ring-emerald-300/40' : 'bg-slate-300'"></span>
+                            <span>Xong</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- SECTION 6: FOOTER CTA (AJAX 1-CHẠM) -->
+                <!-- SECTION 6: FOOTER CTA (AJAX 1-CHẠM + NÚT HUỶ ĐƠN) -->
                 <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
                     
-                    <div class="flex-[3]">
+                    <div class="flex-1">
                         <template x-if="selectedOrder?.status === 'pending'">
                             <button 
                                 type="button" 
@@ -1049,11 +1253,23 @@
                         </template>
                     </div>
 
+                    <!-- Nút Huỷ đơn (Chỉ hiện khi đơn chưa hoàn thành hoặc chưa huỷ) -->
+                    <template x-if="selectedOrder && !['completed', 'cancelled'].includes(selectedOrder?.status)">
+                        <button 
+                            type="button" 
+                            @click="openCancelDialog(selectedOrder)" 
+                            class="py-2.5 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs transition-colors cursor-pointer"
+                            title="Huỷ đơn hàng này"
+                        >
+                            ✕ Huỷ đơn
+                        </button>
+                    </template>
+
                     <!-- Nút phụ: Đóng modal -->
                     <button 
                         type="button" 
                         @click="selectedOrder = null" 
-                        class="flex-1 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                        class="py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
                     >
                         Đóng
                     </button>
@@ -1062,6 +1278,93 @@
 
             </div>
 
+        </div>
+    </div>
+
+    <!-- 8. DIALOG CHỌN LÝ DO HUỶ ĐƠN HÀNG (MODAL CON AN TOÀN & TIỆN LỢI) -->
+    <div 
+        x-show="cancelDialogOrder" 
+        class="fixed inset-0 z-50 overflow-y-auto" 
+        x-cloak
+    >
+        <div class="flex items-center justify-center min-h-screen p-4 text-center">
+            <div 
+                x-show="cancelDialogOrder"
+                x-transition:enter="transition-opacity ease-linear duration-200"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="transition-opacity ease-linear duration-150"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                class="fixed inset-0 bg-black/70 backdrop-blur-xs" 
+                @click="cancelDialogOrder = null"
+            ></div>
+
+            <div 
+                x-show="cancelDialogOrder"
+                x-transition:enter="transition ease-out duration-200 transform"
+                x-transition:enter-start="opacity-0 scale-95"
+                x-transition:enter-end="opacity-100 scale-100"
+                x-transition:leave="transition ease-in duration-150 transform"
+                x-transition:leave-start="opacity-100 scale-100"
+                x-transition:leave-end="opacity-0 scale-95"
+                class="inline-block bg-white rounded-3xl text-left overflow-hidden shadow-2xl transform transition-all w-full max-w-sm relative p-5 space-y-4 text-xs z-50 border border-slate-200"
+            >
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-sm font-bold">⚠️</span>
+                        <h4 class="font-black text-sm text-slate-900">Xác Nhận Huỷ Đơn</h4>
+                    </div>
+                    <button @click="cancelDialogOrder = null" class="text-slate-400 hover:text-slate-600 text-sm font-bold">✕</button>
+                </div>
+
+                <p class="text-slate-600 text-xs">
+                    Bạn đang thực hiện huỷ đơn <strong class="font-mono text-slate-900" x-text="'#' + cancelDialogOrder?.code"></strong>. Vui lòng chọn hoặc nhập lý do huỷ:
+                </p>
+
+                <!-- Các lý do gợi ý nhanh -->
+                <div class="space-y-1.5">
+                    <button type="button" @click="cancelReasonText = 'Khách yêu cầu huỷ'" class="w-full text-left px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors" :class="cancelReasonText === 'Khách yêu cầu huỷ' ? 'bg-rose-50 border-rose-300 text-rose-800' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'">
+                        • Khách yêu cầu huỷ
+                    </button>
+                    <button type="button" @click="cancelReasonText = 'Quán hết món / hết sốt'" class="w-full text-left px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors" :class="cancelReasonText === 'Quán hết món / hết sốt' ? 'bg-rose-50 border-rose-300 text-rose-800' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'">
+                        • Quán hết món / hết sốt
+                    </button>
+                    <button type="button" @click="cancelReasonText = 'Không liên lạc được khách hàng'" class="w-full text-left px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors" :class="cancelReasonText === 'Không liên lạc được khách hàng' ? 'bg-rose-50 border-rose-300 text-rose-800' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'">
+                        • Không liên lạc được khách hàng
+                    </button>
+                    <button type="button" @click="cancelReasonText = 'Địa chỉ ngoài vùng giao hàng'" class="w-full text-left px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors" :class="cancelReasonText === 'Địa chỉ ngoài vùng giao hàng' ? 'bg-rose-50 border-rose-300 text-rose-800' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'">
+                        • Địa chỉ ngoài vùng giao hàng
+                    </button>
+                </div>
+
+                <!-- Input nhập lý do tự do -->
+                <div>
+                    <input 
+                        type="text" 
+                        x-model="cancelReasonText" 
+                        placeholder="Hoặc nhập lý do khác..." 
+                        class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-slate-50 text-xs font-medium outline-none focus:border-red-500 focus:bg-white"
+                    >
+                </div>
+
+                <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+                    <button 
+                        type="button" 
+                        @click="confirmCancelOrder()" 
+                        class="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs transition-colors cursor-pointer shadow-xs"
+                    >
+                        Xác Nhận Huỷ
+                    </button>
+                    <button 
+                        type="button" 
+                        @click="cancelDialogOrder = null" 
+                        class="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer"
+                    >
+                        Bỏ qua
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 

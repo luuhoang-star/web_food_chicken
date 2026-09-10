@@ -15,7 +15,6 @@ class DeployWebhookController extends Controller
     {
         $configuredSecret = config('app.deploy_secret') ?: env('DEPLOY_WEBHOOK_SECRET');
 
-        // If secret is set, validate it
         if (! empty($configuredSecret)) {
             $isAuthorized = false;
 
@@ -46,6 +45,13 @@ class DeployWebhookController extends Controller
                     'message' => 'Unauthorized: Invalid secret token or signature.',
                 ], 403);
             }
+        } elseif (! app()->environment('local', 'testing')) {
+            Log::warning('Deployment webhook called in production but DEPLOY_WEBHOOK_SECRET is not configured.');
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Deployment webhook is disabled. Please configure DEPLOY_WEBHOOK_SECRET in .env.',
+            ], 403);
         }
 
         // If this is a GitHub push event, check if it is for the main branch

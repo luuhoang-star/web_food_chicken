@@ -60,8 +60,14 @@
                     <div class="absolute -inset-4 bg-gradient-to-tr from-red-500/20 to-amber-400/20 rounded-full blur-2xl opacity-70"></div>
                     
                     <div class="relative rounded-3xl overflow-hidden shadow-2xl border-4 border-white aspect-[4/3] bg-gray-900">
+                        @php
+                            $heroImg = $hero?->image ?: 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?auto=format&fit=crop&w=1000&q=85';
+                            if (!str_starts_with($heroImg, 'http')) {
+                                $heroImg = asset($heroImg);
+                            }
+                        @endphp
                         <img 
-                            src="{{ $hero->image ?? 'https://images.unsplash.com/photo-1626645738196-c2a7c87a8f58?auto=format&fit=crop&w=1000&q=85' }}" 
+                            src="{{ $heroImg }}" 
                             alt="{{ $hero->title ?? 'Gà Giòn Sốt Đậm GAO' }}" 
                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                         />

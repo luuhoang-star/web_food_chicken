@@ -16,8 +16,16 @@
         'drink': { desc: 'Nước ngọt ướp lạnh sảng khoái, giải khát tức thì', cols: 'grid-cols-1 sm:grid-cols-2 max-w-2xl' }
     },
 
+    get visibleCategoryTabs() {
+        return this.categories.filter(c => {
+            if (c.id === 'all') return true;
+            if (c.id === 'popular') return this.popularItems.length > 0;
+            return this.getItemsByCategory(c.id).length > 0;
+        });
+    },
+
     get activeCategories() {
-        return this.categories.filter(c => c.id !== 'all' && c.id !== 'popular');
+        return this.categories.filter(c => c.id !== 'all' && c.id !== 'popular' && this.getItemsByCategory(c.id).length > 0);
     },
 
     getItemsByCategory(catSlug) {
@@ -80,7 +88,7 @@
 
             <!-- Category Tab Pill Bar -->
             <div class="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-orange-200/60 pt-1">
-                <template x-for="cat in categories" :key="cat.id">
+                <template x-for="cat in visibleCategoryTabs" :key="cat.id">
                     <button 
                         @click="selectCategory(cat.id)"
                         type="button"
@@ -92,7 +100,7 @@
                         <span 
                             class="text-[10px] px-1.5 py-0.2 rounded-full"
                             :class="activeCategory === cat.id && !isSearching ? 'bg-red-700/80 text-white' : 'bg-gray-100 text-gray-500'"
-                            x-text="cat.count"
+                            x-text="cat.id === 'all' ? allMenuItems.length : (cat.id === 'popular' ? popularItems.length : getItemsByCategory(cat.id).length)"
                         >10</span>
                     </button>
                 </template>
@@ -199,7 +207,7 @@
             <template x-for="cat in activeCategories" :key="cat.id">
                 <section 
                     :id="'category-section-' + cat.id"
-                    x-show="activeCategory === 'all' || activeCategory === cat.id" 
+                    x-show="(activeCategory === 'all' || activeCategory === cat.id) && getItemsByCategory(cat.id).length > 0" 
                     class="space-y-4"
                 >
                     <!-- Section Header -->
@@ -230,6 +238,22 @@
                     </div>
                 </section>
             </template>
+
+            <!-- Trạng thái khi không có món nào hoặc danh mục được chọn đang hết món -->
+            <div 
+                x-show="!isSearching && ((activeCategory === 'all' && allMenuItems.length === 0) || (activeCategory === 'popular' && popularItems.length === 0) || (activeCategory !== 'all' && activeCategory !== 'popular' && getItemsByCategory(activeCategory).length === 0))" 
+                class="text-center py-16 space-y-3 bg-white rounded-3xl p-8 border border-gray-200/80 shadow-xs"
+            >
+                <div class="text-4xl">🍗</div>
+                <h3 class="text-base sm:text-lg font-black text-gray-900">Danh mục này hiện đang tạm hết món</h3>
+                <p class="text-xs text-gray-500 font-medium">Bếp đang chuẩn bị thêm món nóng giòn. Bạn vui lòng chọn các danh mục khác nhé!</p>
+                <button 
+                    @click="activeCategory = 'all'" 
+                    class="mt-2 inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-red-600 text-white font-extrabold text-xs shadow-md hover:bg-red-700 transition-colors cursor-pointer"
+                >
+                    <span>Xem tất cả món còn lại</span>
+                </button>
+            </div>
         </div>
 
     </div>

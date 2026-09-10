@@ -1,12 +1,12 @@
 <!-- SECTION: MÓN ĐƯỢC GỌI NHIỀU (POPULAR ITEMS) -->
-<section id="popular" class="py-16 lg:py-20 bg-[#FAF6F0] border-b border-orange-100/60">
+<section id="popular" x-show="popularItems.length > 0" class="py-16 lg:py-20 bg-[#FAF6F0] border-b border-orange-100/60">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <x-section-heading 
-            badge="MÓN ĐƯỢC GỌI NHIỀU"
+            :badge="$settings['home_popular_badge'] ?? 'MÓN ĐƯỢC GỌI NHIỀU'"
             badgeIcon="🔥"
-            title="Thực Đơn Đậm Vị Được Yêu Thích Nhất"
-            subtitle="Những món gà sốt và cơm gà được đặt nhiều nhất mỗi ngày tại GAO"
+            :title="$settings['home_popular_title'] ?? 'Thực Đơn Đậm Vị Được Yêu Thích Nhất'"
+            :subtitle="$settings['home_popular_subtitle'] ?? 'Những món gà sốt và cơm gà được đặt nhiều nhất mỗi ngày tại GAO'"
         />
 
         <!-- Product Grid -->

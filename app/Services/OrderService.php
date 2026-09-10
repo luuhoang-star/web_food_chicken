@@ -35,7 +35,7 @@ class OrderService
         // 1. Kiểm tra trạng thái đóng/mở nhận đơn của Bếp
         $storeStatus = SiteSetting::get('store_open_status', 'open');
         if ($storeStatus === 'paused') {
-            $hotline = SiteSetting::get('hotline', '0988.868.GAO');
+            $hotline = SiteSetting::get('hotline', '0973.797.151');
             throw new DomainException("Bếp GAO hiện đang tạm dừng nhận đơn ít phút để xử lý đơn hàng hiện tại. Quý khách vui lòng đặt lại sau hoặc liên hệ Hotline {$hotline}!");
         }
 
@@ -212,11 +212,21 @@ class OrderService
             return $order->load('items');
         });
 
-        // Trigger thông báo Telegram tự động (non-blocking)
-        try {
-            $this->telegramService->sendOrderNotification($order);
-        } catch (\Throwable $e) {
-            Log::error('Telegram notification error: '.$e->getMessage());
+        // Trigger thông báo Telegram tự động (non-blocking với defer() để trả response tức thì cho khách)
+        if (function_exists('defer') && ! app()->runningUnitTests()) {
+            defer(function () use ($order) {
+                try {
+                    $this->telegramService->sendOrderNotification($order);
+                } catch (\Throwable $e) {
+                    Log::error('Telegram notification error: '.$e->getMessage());
+                }
+            });
+        } else {
+            try {
+                $this->telegramService->sendOrderNotification($order);
+            } catch (\Throwable $e) {
+                Log::error('Telegram notification error: '.$e->getMessage());
+            }
         }
 
         return $order;

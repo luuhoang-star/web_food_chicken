@@ -327,51 +327,57 @@
                 </h2>
             </div>
             
-            <div class="flex items-center gap-2.5">
-                <!-- Nút Tạm Dừng / Mở Bếp Nhận Đơn (1-Chạm AJAX Rõ Ràng & Chống Nhầm Lẫn) -->
-                @php
-                    $storeStatus = \App\Models\SiteSetting::get('store_open_status', 'open');
-                @endphp
-                <button 
-                    type="button" 
-                    id="topbar-store-toggle-btn"
-                    onclick="toggleStoreOpenStatus(this)"
-                    class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-black transition-all shadow-xs cursor-pointer {{ $storeStatus === 'open' ? 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-300/80' : 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm animate-pulse' }}"
-                    title="{{ $storeStatus === 'open' ? 'Quán đang MỞ nhận đơn. Click để Tạm dừng nhận đơn.' : 'Quán đang TẠM DỪNG nhận đơn. Click để Mở nhận đơn lại.' }}"
-                    data-status="{{ $storeStatus }}"
-                >
-                    <span class="w-2 h-2 rounded-full {{ $storeStatus === 'open' ? 'bg-emerald-500 ring-4 ring-emerald-400/20 animate-pulse' : 'bg-white' }}" id="topbar-store-dot"></span>
-                    <span id="topbar-store-status-text">
-                        {{ $storeStatus === 'open' ? 'Quán: ĐANG MỞ' : 'Quán: TẠM DỪNG' }}
-                    </span>
-                    <span id="topbar-store-action-hint" class="hidden md:inline text-[10px] opacity-75 font-normal">
-                        {{ $storeStatus === 'open' ? '(Click tạm dừng)' : '(Click mở lại)' }}
-                    </span>
-                </button>
+            <div class="flex items-center gap-3">
+                <!-- KHU VỰC TRẠNG THÁI VẬN HÀNH (Tách biệt trực quan, nổi bật) -->
+                <div class="flex items-center gap-1.5 sm:gap-2 bg-slate-100/90 p-1 sm:p-1.5 rounded-2xl border border-slate-300/80 shadow-2xs" id="operational-status-bar">
+                    <!-- Nút Tạm Dừng / Mở Bếp Nhận Đơn (1-Chạm AJAX Rõ Ràng & Chống Nhầm Lẫn) -->
+                    @php
+                        $storeStatus = \App\Models\SiteSetting::get('store_open_status', 'open');
+                    @endphp
+                    <button 
+                        type="button" 
+                        id="topbar-store-toggle-btn"
+                        onclick="toggleStoreOpenStatus(this)"
+                        class="inline-flex items-center gap-2 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-black transition-all shadow-xs cursor-pointer select-none {{ $storeStatus === 'open' ? 'bg-white text-emerald-800 hover:bg-emerald-50 border border-emerald-300 ring-2 ring-emerald-500/10' : 'bg-rose-600 text-white hover:bg-rose-700 shadow-sm animate-pulse' }}"
+                        title="{{ $storeStatus === 'open' ? 'Quán đang MỞ nhận đơn. Click để Tạm dừng nhận đơn.' : 'Quán đang TẠM DỪNG nhận đơn. Click để Mở nhận đơn lại.' }}"
+                        data-status="{{ $storeStatus }}"
+                    >
+                        <span class="w-2.5 h-2.5 rounded-full {{ $storeStatus === 'open' ? 'bg-emerald-500 ring-4 ring-emerald-400/20 animate-pulse' : 'bg-white' }}" id="topbar-store-dot"></span>
+                        <span id="topbar-store-status-text" class="tracking-tight">
+                            {{ $storeStatus === 'open' ? 'Quán: ĐANG MỞ' : 'Quán: TẠM DỪNG' }}
+                        </span>
+                        <span id="topbar-store-action-hint" class="hidden md:inline text-[10px] opacity-75 font-normal">
+                            {{ $storeStatus === 'open' ? '(Click tạm dừng)' : '(Click mở lại)' }}
+                        </span>
+                    </button>
 
-                <!-- Nút Bật/Tắt & Test Chuông Báo Đơn -->
-                <div class="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200/60" id="sound-control-wrapper">
-                    <button 
-                        type="button" 
-                        id="sound-toggle-btn" 
-                        onclick="toggleAudioAlert()" 
-                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all bg-emerald-600 hover:bg-emerald-500 text-white shadow-2xs cursor-pointer"
-                        title="Bấm để Bật / Tắt chuông khi có đơn mới"
-                    >
-                        <span id="sound-icon">🔔</span>
-                        <span id="sound-status-text" class="hidden sm:inline">Chuông: BẬT</span>
-                    </button>
-                    <button 
-                        type="button" 
-                        onclick="playOrderChime(true)" 
-                        class="p-1 px-1.5 rounded-lg hover:bg-slate-200 text-slate-600 text-xs font-bold transition-colors cursor-pointer"
-                        title="Thử tiếng chuông"
-                    >
-                        ▶️
-                    </button>
+                    <!-- Nút Bật/Tắt & Test Chuông Báo Đơn -->
+                    <div class="flex items-center gap-1 bg-white p-0.5 sm:p-1 rounded-xl border border-slate-200 shadow-2xs" id="sound-control-wrapper">
+                        <button 
+                            type="button" 
+                            id="sound-toggle-btn" 
+                            onclick="toggleAudioAlert()" 
+                            class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all bg-emerald-600 hover:bg-emerald-500 text-white shadow-2xs cursor-pointer select-none"
+                            title="Bấm để Bật / Tắt chuông khi có đơn mới"
+                        >
+                            <span id="sound-icon">🔔</span>
+                            <span id="sound-status-text" class="hidden sm:inline font-black">Chuông: BẬT</span>
+                        </button>
+                        <button 
+                            type="button" 
+                            onclick="playOrderChime(true)" 
+                            class="p-1 px-2 rounded-lg hover:bg-slate-100 text-slate-600 text-xs font-bold transition-colors cursor-pointer"
+                            title="Thử tiếng chuông báo"
+                        >
+                            ▶️
+                        </button>
+                    </div>
                 </div>
 
-                <a href="{{ route('home') }}" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors border border-slate-200/60 shadow-2xs">
+                <!-- Phân cách dọc sang các hành động khác -->
+                <div class="hidden sm:block h-6 w-px bg-slate-200"></div>
+
+                <a href="{{ route('home') }}" target="_blank" class="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors border border-slate-200/80 shadow-2xs" title="Xem website cửa hàng">
                     <span>🍗 Web</span>
                     <span>↗</span>
                 </a>

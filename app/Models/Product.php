@@ -28,6 +28,7 @@ class Product extends Model
         'subtag',
         'default_sauce',
         'is_hot',
+        'is_upsell',
         'is_available',
         'order',
     ];
@@ -38,6 +39,7 @@ class Product extends Model
         'rating' => 'decimal:1',
         'review_count' => 'integer',
         'is_hot' => 'boolean',
+        'is_upsell' => 'boolean',
         'is_available' => 'boolean',
         'order' => 'integer',
     ];
@@ -151,7 +153,7 @@ class Product extends Model
             ->withSum(['orderItems as sold_count' => function ($q) {
                 $q->whereHas('order', fn ($o) => $o->where('order_status', '!=', 'cancelled'));
             }], 'quantity')
-            ->orderByRaw('CASE WHEN tag = "BEST SELLER" THEN 1 ELSE 0 END DESC')
+            ->orderByRaw("CASE WHEN tag = 'BEST SELLER' THEN 1 ELSE 0 END DESC")
             ->orderByRaw('COALESCE(sold_count, 0) DESC')
             ->orderBy('order')
             ->orderBy('id')
@@ -165,6 +167,9 @@ class Product extends Model
 
     public function scopeUpsell($query)
     {
-        return $query->whereHas('category', fn ($q) => $q->whereIn('slug', ['drink', 'side']));
+        return $query->where(function ($q) {
+            $q->where('is_upsell', true)
+                ->orWhereHas('category', fn ($c) => $c->whereIn('slug', ['drink', 'side']));
+        });
     }
 }

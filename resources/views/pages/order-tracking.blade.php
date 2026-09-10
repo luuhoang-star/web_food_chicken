@@ -261,8 +261,8 @@
                                                 @if($item->sauce)
                                                     <span class="bg-red-50 text-red-700 px-1.5 py-0.2 rounded font-medium">🌶️ {{ $item->sauce }}</span>
                                                 @endif
-                                                @if(!empty($item->toppings) && is_array($item->toppings))
-                                                    <span>Topping: <strong>{{ implode(', ', $item->toppings) }}</strong></span>
+                                                @if(!empty($item->formatted_toppings))
+                                                    <span>Topping: <strong>{{ $item->formatted_toppings }}</strong></span>
                                                 @endif
                                             </div>
                                         </div>

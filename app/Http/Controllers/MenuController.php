@@ -27,7 +27,7 @@ class MenuController extends Controller
                 $productsQuery->withSum(['orderItems as sold_count' => function ($q) {
                     $q->whereHas('order', fn ($o) => $o->where('order_status', '!=', 'cancelled'));
                 }], 'quantity')
-                    ->orderByRaw('CASE WHEN tag = "BEST SELLER" THEN 1 ELSE 0 END DESC')
+                    ->orderByRaw("CASE WHEN tag = 'BEST SELLER' THEN 1 ELSE 0 END DESC")
                     ->orderByRaw('COALESCE(sold_count, 0) DESC');
             } else {
                 $productsQuery->whereHas('category', fn ($query) => $query->where('slug', $selectedCategory));

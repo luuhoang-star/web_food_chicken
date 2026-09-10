@@ -4,8 +4,8 @@
         
         <!-- Section Header -->
         <x-section-heading 
-            title="KHÁCH ĂN NÓI GÌ?"
-            subtitle="Hơn 10.000+ bữa ăn ngon đã được giao đến tay khách hàng tại Hà Nội"
+            :title="$settings['home_testimonials_title'] ?? 'KHÁCH ĂN NÓI GÌ?'"
+            :subtitle="$settings['home_testimonials_subtitle'] ?? 'Hơn 10.000+ bữa ăn ngon đã được giao đến tay khách hàng tại Hà Nội'"
         />
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">

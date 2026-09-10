@@ -21,6 +21,7 @@ class Order extends Model
         'payment_method',
         'payment_status',
         'order_status',
+        'cancellation_reason',
         'subtotal',
         'shipping_fee',
         'discount',
@@ -68,6 +69,7 @@ class Order extends Model
     {
         return match ($this->order_status) {
             'pending' => 'bg-amber-100 text-amber-800 border-amber-200',
+            'confirmed' => 'bg-blue-100 text-blue-800 border-blue-200',
             'preparing', 'processing' => 'bg-orange-100 text-orange-800 border-orange-200',
             'delivering', 'shipping' => 'bg-blue-100 text-blue-800 border-blue-200',
             'completed' => 'bg-emerald-100 text-emerald-800 border-emerald-200',

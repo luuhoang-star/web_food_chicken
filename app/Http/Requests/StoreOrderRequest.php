@@ -24,9 +24,9 @@ class StoreOrderRequest extends FormRequest
     {
         return [
             'fullName' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['required', 'string', 'regex:/^(03|05|07|08|09)\d{8}$/'],
             'district' => ['required', 'string', 'max:100'],
-            'address' => ['required', 'string', 'max:500'],
+            'address' => ['required', 'string', 'min:10', 'max:500'],
             'driverNote' => ['nullable', 'string', 'max:500'],
             'paymentMethod' => ['required', 'string', 'in:cod,momo,vnpay,zalopay,bank_transfer'],
             'couponCode' => ['nullable', 'string', 'max:50'],
@@ -55,8 +55,10 @@ class StoreOrderRequest extends FormRequest
         return [
             'fullName.required' => 'Vui lòng nhập họ và tên người nhận.',
             'phone.required' => 'Vui lòng nhập số điện thoại nhận hàng.',
+            'phone.regex' => 'Số điện thoại không hợp lệ (yêu cầu đúng 10 số, bắt đầu bằng 03, 05, 07, 08, 09).',
             'district.required' => 'Vui lòng chọn quận/huyện giao hàng.',
             'address.required' => 'Vui lòng nhập địa chỉ giao hàng chi tiết.',
+            'address.min' => 'Địa chỉ giao hàng quá ngắn, vui lòng nhập đầy đủ số nhà, ngõ ngách, tên đường (tối thiểu 10 ký tự).',
             'paymentMethod.required' => 'Vui lòng chọn phương thức thanh toán.',
             'items.required' => 'Giỏ hàng của bạn đang trống.',
             'items.min' => 'Vui lòng chọn ít nhất 1 món ăn trước khi thanh toán.',

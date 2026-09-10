@@ -32,7 +32,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/menu', [MenuController::class, 'index'])->name('menu');
 Route::get('/cam-ket', [HomeController::class, 'quality'])->name('quality');
-Route::get('/tra-cuu-don', [OrderTrackingController::class, 'index'])->name('order.tracking');
+Route::get('/tra-cuu-don', [OrderTrackingController::class, 'index'])->middleware('throttle:60,1')->name('order.tracking');
 
 // Redirect any old sauce routes directly to Menu
 Route::get('/sot', fn () => redirect()->route('menu'))->name('sauces.index');
@@ -41,8 +41,8 @@ Route::get('/sauces', fn () => redirect()->route('menu'))->name('sauces');
 Route::get('/sauces/{slug}', fn (string $slug) => redirect()->route('menu', ['sauce' => $slug]));
 
 Route::get('/product/{slug}', [ProductController::class, 'show'])->name('product.show');
-Route::post('/api/orders', [OrderController::class, 'store'])->name('orders.store');
-Route::post('/api/coupons/apply', [OrderController::class, 'applyCoupon'])->name('coupons.apply');
+Route::post('/api/orders', [OrderController::class, 'store'])->middleware('throttle:30,1')->name('orders.store');
+Route::post('/api/coupons/apply', [OrderController::class, 'applyCoupon'])->middleware('throttle:60,1')->name('coupons.apply');
 
 // Automated Deployment Webhook (GitHub / CI/CD)
 Route::match(['get', 'post'], '/webhook/deploy', [DeployWebhookController::class, 'handle'])->name('webhook.deploy');
@@ -78,6 +78,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::delete('/products/{id}', [ProductAdminController::class, 'destroy'])->name('products.destroy');
         Route::patch('/products/{id}/price', [ProductAdminController::class, 'updatePrice'])->name('products.update-price');
         Route::patch('/products/{id}/toggle-availability', [ProductAdminController::class, 'toggleAvailability'])->name('products.toggle-availability');
+        Route::patch('/products/{id}/toggle-upsell', [ProductAdminController::class, 'toggleUpsell'])->name('products.toggle-upsell');
         Route::post('/products/bulk-action', [ProductAdminController::class, 'bulkAction'])->name('products.bulk-action');
 
         // 3. Quản lý Danh mục món ăn (Categories CRUD)

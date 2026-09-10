@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             SiteSettingSeeder::class,
             CouponSeeder::class,
             AdminUserSeeder::class,
+            OrderSeeder::class,
         ]);
     }
 }

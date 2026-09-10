@@ -4,10 +4,10 @@
         
         <!-- Header -->
         <x-section-heading 
-            badge="TINH HOA HƯƠNG VỊ"
+            :badge="$settings['home_sauces_badge'] ?? 'TINH HOA HƯƠNG VỊ'"
             badgeIcon="🌶️"
-            title="4 VỊ SỐT ĐẶC TRƯNG TẠI GAO"
-            subtitle="Sốt thủ công nguyên bản, sánh mịn thơm lừng phủ đẫm trên từng miếng gà giòn rụm."
+            :title="$settings['home_sauces_title'] ?? '4 VỊ SỐT ĐẶC TRƯNG TẠI GAO'"
+            :subtitle="$settings['home_sauces_subtitle'] ?? 'Sốt thủ công nguyên bản, sánh mịn thơm lừng phủ đẫm trên từng miếng gà giòn rụm.'"
             align="left"
             :actionUrl="route('menu')"
             actionText="Xem thực đơn đặt món"

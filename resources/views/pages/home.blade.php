@@ -4,20 +4,32 @@
 
 @section('content')
     <!-- HERO DISCOVERY -->
-    @include('sections.hero')
+    @if(($settings['section_hero_enabled'] ?? '1') == '1')
+        @include('sections.hero')
+    @endif
 
     <!-- SPOTLIGHT 4 VỊ SỐT (TEASER BANNER DẪN ĐẾN TRANG SỐT) -->
-    @include('sections.home-sauces-banner')
+    @if(($settings['section_sauces_enabled'] ?? '1') == '1')
+        @include('sections.home-sauces-banner')
+    @endif
 
-    <!-- TOP MÓN HOT BÁN CHẠY -->
-    @include('sections.popular-dishes')
+    <!-- TOP MÓN HOT BÁN CHẠY (MÓN ĐƯỢC GỌI NHIỀU) -->
+    @if(($settings['section_popular_enabled'] ?? '1') == '1')
+        @include('sections.popular-dishes')
+    @endif
 
     <!-- COMBO TIẾT KIỆM -->
-    @include('sections.combos')
+    @if(($settings['section_combos_enabled'] ?? '1') == '1')
+        @include('sections.combos')
+    @endif
 
     <!-- 3 CAM KẾT CHẤT LƯỢNG VÀNG -->
-    @include('sections.benefits')
+    @if(($settings['section_benefits_enabled'] ?? '1') == '1')
+        @include('sections.benefits')
+    @endif
 
     <!-- ĐÁNH GIÁ TỪ KHÁCH HÀNG HÀ NỘI -->
-    @include('sections.testimonials')
+    @if(($settings['section_testimonials_enabled'] ?? '1') == '1')
+        @include('sections.testimonials')
+    @endif
 @endsection

@@ -6,25 +6,9 @@ function gaoApp() {
     // Read dynamic data injected from Laravel Blade or fallback to empty array
     const initialData = window.GAO_DATA || {};
 
-    const dbCategories = (initialData.categories || []).map(cat => ({
-        id: cat.slug,
-        name: cat.name,
-        icon: cat.icon || '✨',
-        count: cat.products_count || 0
-    }));
-
-    // Add 'Tất Cả' tab dynamically with total count
     const rawProducts = (initialData.allProducts && initialData.allProducts.length > 0) 
         ? initialData.allProducts 
         : (initialData.products || []);
-
-    const totalProductCount = rawProducts.length;
-    const popularCount = rawProducts.filter(p => (p.tag === 'BEST SELLER' || (Number(p.sold_count) || 0) > 0)).length || Math.min(8, totalProductCount);
-    const allCategories = [
-        { id: 'all', name: 'Tất Cả', icon: '✨', count: totalProductCount },
-        { id: 'popular', name: 'Bán Chạy', icon: '🔥', count: popularCount },
-        ...dbCategories
-    ];
 
     const dbSauces = (initialData.sauces || []).map(s => ({
         id: s.id,
@@ -39,6 +23,22 @@ function gaoApp() {
         price: Number(s.price) || 10000,
         is_available: s.is_available ?? true
     }));
+
+    const getSortedPopularProducts = (products) => {
+        return [...products].sort((a, b) => {
+            const aTagScore = a.tag === 'BEST SELLER' ? 1 : 0;
+            const bTagScore = b.tag === 'BEST SELLER' ? 1 : 0;
+            if (bTagScore !== aTagScore) {
+                return bTagScore - aTagScore;
+            }
+            const aSold = a.sold_count || 0;
+            const bSold = b.sold_count || 0;
+            if (bSold !== aSold) {
+                return bSold - aSold;
+            }
+            return (a.order || 0) - (b.order || 0);
+        });
+    };
 
     const dbProducts = rawProducts.map(p => {
         const catSlug = p.category ? p.category.slug : 'rice';
@@ -83,21 +83,20 @@ function gaoApp() {
         };
     });
 
-    const getSortedPopularProducts = (products) => {
-        return [...products].sort((a, b) => {
-            const aTagScore = a.tag === 'BEST SELLER' ? 1 : 0;
-            const bTagScore = b.tag === 'BEST SELLER' ? 1 : 0;
-            if (bTagScore !== aTagScore) {
-                return bTagScore - aTagScore;
-            }
-            const aSold = a.sold_count || 0;
-            const bSold = b.sold_count || 0;
-            if (bSold !== aSold) {
-                return bSold - aSold;
-            }
-            return (a.order || 0) - (b.order || 0);
-        });
-    };
+    const dbCategories = (initialData.categories || []).map(cat => ({
+        id: cat.slug,
+        name: cat.name,
+        icon: cat.icon || '✨',
+        count: dbProducts.filter(p => p.category === cat.slug).length
+    }));
+
+    const totalProductCount = dbProducts.length;
+    const popularCount = getSortedPopularProducts(dbProducts).filter(p => (p.tag === 'BEST SELLER' || (Number(p.sold_count) || 0) > 0)).length || Math.min(8, totalProductCount);
+    const allCategories = [
+        { id: 'all', name: 'Tất Cả', icon: '✨', count: totalProductCount },
+        { id: 'popular', name: 'Bán Chạy', icon: '🔥', count: popularCount },
+        ...dbCategories
+    ];
 
     const dbSpiceLevels = (initialData.spiceLevels || []).map(sp => ({
         id: 'spice-' + sp.id,
@@ -114,10 +113,24 @@ function gaoApp() {
 
     const dbUpsell = (initialData.upsellItems || []).map(u => ({
         id: 'up-' + u.id,
+        db_id: u.id,
         name: u.name,
         price: Number(u.price),
         image: u.image || '',
+        category: (u.category && u.category.slug) ? u.category.slug : 'side',
+        is_upsell: Boolean(u.is_upsell),
         icon: (u.category && u.category.slug === 'drink') ? '🥤' : '🍟'
+    }));
+
+    const dbCoupons = (initialData.coupons || []).map(c => ({
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        type: c.type, // 'fixed', 'percent'
+        value: Number(c.value),
+        min_order_amount: Number(c.min_order_amount || 0),
+        max_discount: c.max_discount ? Number(c.max_discount) : null,
+        expires_at: c.expires_at
     }));
 
     // Load persisted cart from localStorage
@@ -151,6 +164,7 @@ function gaoApp() {
         spiceLevels: dbSpiceLevels,
         availableToppings: dbToppings,
         upsellItems: dbUpsell,
+        availableCoupons: dbCoupons,
 
         // Checkout Form state
         checkoutForm: {
@@ -273,6 +287,87 @@ function gaoApp() {
             return this.allMenuItems.filter(i => i.category === 'drink');
         },
 
+        get dynamicUpsellItems() {
+            if (!this.upsellItems || this.upsellItems.length === 0) {
+                return [];
+            }
+
+            const cart = this.cartItems || [];
+            if (cart.length === 0) {
+                return this.upsellItems.map(item => ({
+                    ...item,
+                    reasonBadge: item.is_upsell ? '🔥 Quán đề xuất' : (item.category === 'drink' ? '🥤 Nước uống' : '🍟 Món kèm')
+                }));
+            }
+
+            // Phân tích ngữ cảnh các món hiện có trong giỏ hàng
+            const hasDrink = cart.some(i => 
+                i.category === 'drink' || 
+                (i.name && /coca|pepsi|sprite|7up|trà|nước|chanh|fanta|dasani|aquafina|sting|redbull/i.test(i.name))
+            );
+
+            const hasRice = cart.some(i => 
+                i.category === 'rice' || 
+                (i.name && /cơm|com/i.test(i.name))
+            );
+
+            const hasChicken = cart.some(i => 
+                ['chicken', 'combo'].includes(i.category) || 
+                (i.name && /gà|ga|combo|cánh|đùi|miếng/i.test(i.name))
+            );
+
+            const scoredItems = this.upsellItems.map(item => {
+                const inCart = cart.some(c => c.name === item.name || (c.product_id && c.product_id === item.db_id));
+                let score = 0;
+                let badge = '✨ Món ngon gợi ý';
+                let icon = item.icon || '🍟';
+
+                const isDrink = item.category === 'drink' || /coca|pepsi|sprite|7up|trà|nước|chanh|fanta|dasani|aquafina/i.test(item.name);
+                const isRiceCompanion = /trứng|canh|kim chi|rong biển|soup|súp/i.test(item.name);
+                const isCrispySide = /khoai|salad|bắp cải|phô mai|nem|xúc xích/i.test(item.name);
+
+                if (item.is_upsell) {
+                    score += 100;
+                    badge = '🔥 Quán đề xuất';
+                    icon = '🔥';
+                }
+
+                if (!hasDrink && isDrink) {
+                    score += 80;
+                    badge = '🥤 Chưa có nước';
+                    icon = '🥤';
+                } else if (hasRice && isRiceCompanion) {
+                    score += 70;
+                    badge = '🍳 Ăn kèm cơm';
+                    icon = '🍳';
+                } else if (hasChicken && isCrispySide) {
+                    score += 60;
+                    badge = '🍟 Thêm giòn rụm';
+                    icon = '🍟';
+                } else if (isDrink) {
+                    score += 30;
+                    if (!item.is_upsell) {
+                        badge = '🥤 Giải khát';
+                        icon = '🥤';
+                    }
+                }
+
+                if (inCart) {
+                    score -= 150; // Đẩy món đã có trong giỏ về sau
+                }
+
+                return {
+                    ...item,
+                    score,
+                    inCart,
+                    icon,
+                    reasonBadge: badge
+                };
+            });
+
+            return scoredItems.sort((a, b) => b.score - a.score);
+        },
+
         get singleCustomizedPrice() {
             const toppingTotal = (this.customizingItem.selectedToppings || []).reduce((sum, topId) => {
                 const top = this.availableToppings.find(t => t.id === topId);
@@ -305,6 +400,28 @@ function gaoApp() {
             return (this.singleCustomizedPrice * this.customizingItem.quantity) + this.totalExtraSaucePrice;
         },
 
+        get eligibleCouponsCount() {
+            return (this.availableCoupons || []).filter(c => this.totalPrice >= c.min_order_amount).length;
+        },
+
+        get bestCouponUpsellHint() {
+            if (!this.availableCoupons || this.availableCoupons.length === 0 || this.totalPrice <= 0) return null;
+            const lockedCoupons = this.availableCoupons
+                .filter(c => this.totalPrice < c.min_order_amount)
+                .sort((a, b) => (a.min_order_amount - this.totalPrice) - (b.min_order_amount - this.totalPrice));
+            
+            if (lockedCoupons.length > 0) {
+                const nextCoupon = lockedCoupons[0];
+                const diff = nextCoupon.min_order_amount - this.totalPrice;
+                return {
+                    coupon: nextCoupon,
+                    missingAmount: diff,
+                    discountText: nextCoupon.type === 'percent' ? `giảm ${nextCoupon.value}%` : `giảm ${this.formatCurrency(nextCoupon.value)}`
+                };
+            }
+            return null;
+        },
+
         // Helper for extra sauces in customize modal
         getExtraSauceQty(slug) {
             return this.customizingItem.extraSauces[slug] || 0;
@@ -332,8 +449,18 @@ function gaoApp() {
             }
         },
 
+        switchView(view) {
+            this.currentView = view || 'home';
+            if (view === 'menu' && !window.location.pathname.startsWith('/menu')) {
+                window.location.href = '/menu';
+            } else if (view === 'home' && window.location.pathname !== '/') {
+                window.location.href = '/';
+            }
+        },
+
         // 1. ADD STANDALONE SAUCE TO CART (10.000đ/phần, no chicken dish required)
         addSauceToCart(sauce, qty = 1) {
+            if (!sauce) return;
             const addQty = Math.max(1, Number(qty) || 1);
             
             // Check if this exact sauce is already in the cart
@@ -375,6 +502,8 @@ function gaoApp() {
 
         // 2. Open modal to customize dish before adding
         openCustomize(item) {
+            if (!item) return;
+
             // For drinks or sides without customization, quick add directly
             if (['drink', 'side'].includes(item.category)) {
                 this.addToCartDirect(item);
@@ -544,6 +673,7 @@ function gaoApp() {
 
         // Quick add for upsell / combos / sides / drinks -> directly goes to cart
         addToCartDirect(item) {
+            if (!item) return;
             const itemType = (item.name && item.name.toUpperCase().includes('COMBO')) ? 'combo' : 'product';
             const existing = this.cartItems.find(i => i.name === item.name && i.item_type === itemType);
             
@@ -555,9 +685,10 @@ function gaoApp() {
                     item_type: itemType,
                     product_id: item.db_id || null,
                     sauce_id: null,
+                    category: item.category || 'side',
                     name: item.name,
-                    price: item.price,
-                    image: item.image,
+                    price: Number(item.price) || 0,
+                    image: item.image || '',
                     quantity: 1,
                     sauce: null,
                     spiceLevel: null,
@@ -570,22 +701,28 @@ function gaoApp() {
         },
 
         removeItem(index) {
-            this.cartItems.splice(index, 1);
-            this.saveCart();
+            if (index >= 0 && index < this.cartItems.length) {
+                this.cartItems.splice(index, 1);
+                this.saveCart();
+            }
         },
 
         incrementItem(index) {
-            this.cartItems[index].quantity++;
-            this.saveCart();
+            if (this.cartItems[index]) {
+                this.cartItems[index].quantity++;
+                this.saveCart();
+            }
         },
 
         decrementItem(index) {
-            if (this.cartItems[index].quantity > 1) {
-                this.cartItems[index].quantity--;
-            } else {
-                this.removeItem(index);
+            if (this.cartItems[index]) {
+                if (this.cartItems[index].quantity > 1) {
+                    this.cartItems[index].quantity--;
+                } else {
+                    this.removeItem(index);
+                }
+                this.saveCart();
             }
-            this.saveCart();
         },
 
         // Open Checkout Modal
@@ -601,16 +738,20 @@ function gaoApp() {
 
         // Submit Order logic - Sends distinct item_type (product, sauce, combo) to API
         async submitOrder() {
+            if (this.isSubmitting) return;
+
             if (!this.checkoutForm.fullName.trim()) {
                 alert('Vui lòng nhập Họ và tên!');
                 return;
             }
-            if (!this.checkoutForm.phone.trim()) {
-                alert('Vui lòng nhập Số điện thoại nhận hàng!');
+            const phoneClean = this.checkoutForm.phone.replace(/[\s.-]/g, '');
+            const phoneRegex = /^(03|05|07|08|09)\d{8}$/;
+            if (!phoneRegex.test(phoneClean)) {
+                alert('Số điện thoại không hợp lệ (yêu cầu đúng 10 số, bắt đầu bằng 03, 05, 07, 08, 09)!');
                 return;
             }
-            if (!this.checkoutForm.address.trim()) {
-                alert('Vui lòng nhập Địa chỉ chi tiết (số nhà, ngõ, tên toà nhà)!');
+            if (this.checkoutForm.address.trim().length < 10) {
+                alert('Địa chỉ giao hàng quá ngắn, vui lòng nhập đầy đủ số nhà, ngõ ngách, tên đường (tối thiểu 10 ký tự)!');
                 return;
             }
 

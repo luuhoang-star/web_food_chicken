@@ -133,7 +133,7 @@ test('order creation calculates discount from valid coupon and increments usage'
         'fullName' => 'Trần Văn B',
         'phone' => '0933221100',
         'district' => 'Quận Ba Đình',
-        'address' => '10 Kim Mã',
+        'address' => 'Số 10 Phố Kim Mã, Ba Đình',
         'paymentMethod' => 'cod',
         'couponCode' => 'GIAM20K',
         'items' => [
@@ -210,7 +210,7 @@ test('order creation rejects unavailable items', function () {
         'fullName' => 'Khách Hàng',
         'phone' => '0988776655',
         'district' => 'Quận Cầu Giấy',
-        'address' => 'Cầu Giấy',
+        'address' => '123 Đường Cầu Giấy, Hà Nội',
         'paymentMethod' => 'cod',
         'items' => [
             [

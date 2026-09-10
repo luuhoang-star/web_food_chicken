@@ -158,24 +158,24 @@
                     </div>
                 </template>
 
-                <!-- Upsell Carousel / Strip -->
-                <div class="pt-2 space-y-2.5" x-show="cartItems.length > 0">
+                <!-- Upsell Carousel / Strip (Dynamic Smart Upsell) -->
+                <div class="pt-2 space-y-2.5" x-show="cartItems.length > 0 && dynamicUpsellItems.length > 0">
                     <div class="flex items-center justify-between">
                         <div class="text-xs font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                            <span>🥤</span>
-                            <span>GỢI Ý THÊM MÓN NGON:</span>
+                            <span class="text-sm">✨</span>
+                            <span>GỢI Ý THÊM MÓN HỢP VỊ:</span>
                         </div>
                         <!-- Nút bấm lướt trái / phải tiện lợi -->
-                        <div class="flex items-center gap-1.5" x-show="upsellItems && upsellItems.length > 1">
+                        <div class="flex items-center gap-1.5" x-show="dynamicUpsellItems.length > 1">
                             <button 
                                 type="button" 
-                                @click="$refs.upsellStrip.scrollBy({ left: -160, behavior: 'smooth' })"
+                                @click="$refs.upsellStrip.scrollBy({ left: -180, behavior: 'smooth' })"
                                 class="w-6 h-6 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-600 flex items-center justify-center text-xs font-black transition-colors cursor-pointer border border-gray-200 shadow-2xs"
                                 title="Lướt món trước"
                             >‹</button>
                             <button 
                                 type="button" 
-                                @click="$refs.upsellStrip.scrollBy({ left: 160, behavior: 'smooth' })"
+                                @click="$refs.upsellStrip.scrollBy({ left: 180, behavior: 'smooth' })"
                                 class="w-6 h-6 rounded-full bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-600 flex items-center justify-center text-xs font-black transition-colors cursor-pointer border border-gray-200 shadow-2xs"
                                 title="Lướt món tiếp theo"
                             >›</button>
@@ -193,19 +193,44 @@
                         @wheel.prevent="$el.scrollLeft += $event.deltaY"
                         class="flex gap-2.5 overflow-x-auto pb-2 scroll-smooth select-none cursor-grab scrollbar-none"
                     >
-                        <template x-for="up in upsellItems" :key="up.id">
+                        <template x-for="up in dynamicUpsellItems" :key="up.id">
                             <div 
                                 @click="$el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })"
-                                class="shrink-0 bg-white border border-gray-200 hover:border-red-400 rounded-full px-3.5 py-1.5 flex items-center gap-2 shadow-2xs transition-all duration-200 active:scale-95"
+                                class="shrink-0 bg-white border border-gray-200/90 hover:border-red-400 rounded-2xl p-2 flex items-center gap-2.5 shadow-2xs transition-all duration-200 active:scale-95 group relative min-w-[210px]"
+                                :class="up.inCart ? 'opacity-70 bg-gray-50/70 border-dashed' : ''"
                             >
-                                <span class="text-sm" x-text="up.icon || '🥤'">🥤</span>
-                                <span class="text-xs font-bold text-gray-800 whitespace-nowrap" x-text="up.name">Coca Cola</span>
-                                <span class="text-xs font-black text-red-600" x-text="'+' + formatCurrency(up.price)">+12.000đ</span>
+                                <!-- Thumbnail / Icon -->
+                                <div class="w-10 h-10 rounded-xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100 flex items-center justify-center">
+                                    <template x-if="up.image">
+                                        <img :src="up.image" :alt="up.name" class="w-full h-full object-cover">
+                                    </template>
+                                    <template x-if="!up.image">
+                                        <span class="text-base" x-text="up.icon || '🥤'"></span>
+                                    </template>
+                                </div>
+
+                                <!-- Info & Reason Badge -->
+                                <div class="flex-1 min-w-0 space-y-0.5">
+                                    <div class="flex items-center gap-1">
+                                        <span 
+                                            class="text-[9px] font-black px-1.5 py-0.2 rounded-md truncate max-w-[110px]"
+                                            :class="up.reasonBadge.includes('Quán') ? 'bg-amber-100 text-amber-800' : (up.reasonBadge.includes('nước') ? 'bg-blue-100 text-blue-800' : 'bg-red-50 text-red-700')"
+                                            x-text="up.reasonBadge"
+                                        ></span>
+                                    </div>
+                                    <h5 class="text-xs font-bold text-gray-900 truncate leading-tight" x-text="up.name">Coca Cola</h5>
+                                    <div class="text-[11px] font-black text-red-600" x-text="'+' + formatCurrency(up.price)">+12.000đ</div>
+                                </div>
+
+                                <!-- Nút thêm -->
                                 <button 
                                     @click.stop="addToCartDirect(up); $el.parentElement.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' })" 
                                     type="button"
-                                    class="text-[11px] font-bold text-red-600 hover:text-white hover:bg-red-600 bg-red-50 hover:border-red-600 px-2.5 py-0.5 rounded-full border border-red-200 transition-colors cursor-pointer"
-                                >+ Thêm</button>
+                                    class="text-[11px] font-bold text-red-600 hover:text-white hover:bg-red-600 bg-red-50 hover:border-red-600 px-2.5 py-1.5 rounded-xl border border-red-200 transition-all cursor-pointer shrink-0 shadow-2xs active:scale-90"
+                                    :title="'Thêm ' + up.name + ' vào giỏ hàng'"
+                                >
+                                    <span>+ Thêm</span>
+                                </button>
                             </div>
                         </template>
                     </div>
@@ -213,8 +238,33 @@
 
             </div>
 
-            <!-- Drawer Footer & Payment Summary -->
-            <div x-show="cartItems.length > 0" class="p-6 bg-white border-t border-gray-200/80 space-y-4 shrink-0 shadow-lg">
+                <!-- Smart Voucher Hint in Cart Drawer -->
+                <div 
+                    x-show="cartItems.length > 0 && availableCoupons && availableCoupons.length > 0" 
+                    class="p-2.5 rounded-2xl border text-xs space-y-1.5 transition-all"
+                    :class="eligibleCouponsCount > 0 
+                        ? 'bg-emerald-50/70 border-emerald-200/90 text-emerald-900' 
+                        : (bestCouponUpsellHint ? 'bg-amber-50/80 border-amber-200 text-amber-900' : 'bg-gray-50 border-gray-200 text-gray-700')"
+                >
+                    <template x-if="eligibleCouponsCount > 0">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5 font-black text-emerald-800">
+                                <span>🎟️</span>
+                                <span>Bạn có <strong x-text="eligibleCouponsCount"></strong> mã giảm giá có thể áp dụng!</span>
+                            </div>
+                            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full shrink-0">1-Chạm</span>
+                        </div>
+                    </template>
+                    <template x-if="eligibleCouponsCount === 0 && bestCouponUpsellHint">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-1.5 font-bold text-amber-900 leading-tight">
+                                <span>💡</span>
+                                <span>Mua thêm <strong class="text-red-600 font-black" x-text="formatCurrency(bestCouponUpsellHint.missingAmount)"></strong> để nhận mã <strong class="font-mono bg-amber-100 px-1 py-0.2 rounded" x-text="bestCouponUpsellHint.coupon.code"></strong> (<span x-text="bestCouponUpsellHint.discountText"></span>)!</span>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
                 <div class="space-y-2 text-xs font-bold text-gray-600">
                     <div class="flex justify-between">
                         <span class="text-gray-500">Tạm tính:</span>

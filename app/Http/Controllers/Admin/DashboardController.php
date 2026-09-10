@@ -121,6 +121,7 @@ class DashboardController extends Controller
 
             $validOrdersCount = $periodOrdersCount - $cancelledOrdersCount;
             $avgOrderValue = $validOrdersCount > 0 ? (int) ($periodRevenue / $validOrdersCount) : 0;
+            $completionRate = $periodOrdersCount > 0 ? round(($completedOrdersCount / $periodOrdersCount) * 100) : 100;
 
             // So sánh % tăng trưởng doanh thu nếu có kỳ trước
             if ($compareStartDate && $compareEndDate) {
@@ -139,6 +140,11 @@ class DashboardController extends Controller
                 ->get();
 
             $pendingOrdersCount = $actionableOrders->count();
+            $urgentThresholdMinutes = 10;
+            $currentTime = Carbon::now();
+            $urgentOrdersCount = $actionableOrders->filter(function ($ord) use ($currentTime, $urgentThresholdMinutes) {
+                return $ord->order_status === 'pending' && $ord->created_at && $ord->created_at->diffInMinutes($currentTime) >= $urgentThresholdMinutes;
+            })->count();
 
             // 3. 5 Đơn gần nhất
             $recentOrders = Order::with('items')->latest()->take(5)->get();
@@ -180,7 +186,7 @@ class DashboardController extends Controller
                 $dailyStats = Order::whereBetween('created_at', [$startDate, $endDate])
                     ->select(
                         DB::raw('DATE(created_at) as date'),
-                        DB::raw('SUM(CASE WHEN order_status != "cancelled" THEN total_amount ELSE 0 END) as revenue'),
+                        DB::raw("SUM(CASE WHEN order_status != 'cancelled' THEN total_amount ELSE 0 END) as revenue"),
                         DB::raw('COUNT(*) as total_orders')
                     )
                     ->groupBy(DB::raw('DATE(created_at)'))
@@ -232,6 +238,9 @@ class DashboardController extends Controller
             'completedOrdersCount' => $completedOrdersCount,
             'cancelledOrdersCount' => $cancelledOrdersCount,
             'pendingOrdersCount' => $pendingOrdersCount,
+            'urgentOrdersCount' => $urgentOrdersCount,
+            'urgentThresholdMinutes' => $urgentThresholdMinutes,
+            'completionRate' => $completionRate,
             'avgOrderValue' => $avgOrderValue,
             'actionableOrders' => $actionableOrders,
             'recentOrders' => $recentOrders,
