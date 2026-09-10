@@ -300,60 +300,58 @@ function gaoApp() {
                 }));
             }
 
-            // Phân tích ngữ cảnh các món hiện có trong giỏ hàng
-            const hasDrink = cart.some(i => 
-                i.category === 'drink' || 
-                (i.name && /coca|pepsi|sprite|7up|trà|nước|chanh|fanta|dasani|aquafina|sting|redbull/i.test(i.name))
-            );
+            // 1. Phân tích ngữ cảnh trực tiếp từ Danh mục (Category) của món trong giỏ hàng
+            const hasDrink = cart.some(i => i.category === 'drink');
+            const hasRice = cart.some(i => i.category === 'rice');
+            const hasChicken = cart.some(i => ['chicken', 'combo'].includes(i.category));
 
-            const hasRice = cart.some(i => 
-                i.category === 'rice' || 
-                (i.name && /cơm|com/i.test(i.name))
-            );
-
-            const hasChicken = cart.some(i => 
-                ['chicken', 'combo'].includes(i.category) || 
-                (i.name && /gà|ga|combo|cánh|đùi|miếng/i.test(i.name))
-            );
-
+            // 2. Chấm điểm ưu tiên & gán nhãn động 100% theo Database Category & Flags
             const scoredItems = this.upsellItems.map(item => {
                 const inCart = cart.some(c => c.name === item.name || (c.product_id && c.product_id === item.db_id));
                 let score = 0;
-                let badge = '✨ Món ngon gợi ý';
-                let icon = item.icon || '🍟';
+                let badge = '✨ Món ngon';
+                let icon = item.icon || (item.category === 'drink' ? '🥤' : '🍟');
 
-                const isDrink = item.category === 'drink' || /coca|pepsi|sprite|7up|trà|nước|chanh|fanta|dasani|aquafina/i.test(item.name);
-                const isRiceCompanion = /trứng|canh|kim chi|rong biển|soup|súp/i.test(item.name);
-                const isCrispySide = /khoai|salad|bắp cải|phô mai|nem|xúc xích/i.test(item.name);
+                const isDrink = item.category === 'drink';
+                const isSide = item.category === 'side';
 
+                // Ưu tiên cao nhất: Món được Admin bật cờ Gợi ý (is_upsell = true)
                 if (item.is_upsell) {
                     score += 100;
                     badge = '🔥 Quán đề xuất';
                     icon = '🔥';
                 }
 
+                // Nếu giỏ chưa có đồ uống -> Ưu tiên gợi ý món thuộc danh mục Đồ uống
                 if (!hasDrink && isDrink) {
                     score += 80;
-                    badge = '🥤 Chưa có nước';
+                    badge = '🥤 Thêm nước mát';
                     icon = '🥤';
-                } else if (hasRice && isRiceCompanion) {
+                // Nếu giỏ có món cơm -> Ưu tiên gợi ý món ăn kèm Side
+                } else if (hasRice && isSide) {
                     score += 70;
-                    badge = '🍳 Ăn kèm cơm';
+                    badge = '🍳 Ăn kèm chuẩn vị';
                     icon = '🍳';
-                } else if (hasChicken && isCrispySide) {
+                // Nếu giỏ có gà/combo -> Ưu tiên gợi ý món ăn kèm Side
+                } else if (hasChicken && isSide) {
                     score += 60;
-                    badge = '🍟 Thêm giòn rụm';
+                    badge = '🍟 Thêm giòn ngon';
                     icon = '🍟';
+                // Nếu là đồ uống thông thường
                 } else if (isDrink) {
                     score += 30;
                     if (!item.is_upsell) {
                         badge = '🥤 Giải khát';
                         icon = '🥤';
                     }
+                } else if (isSide && !item.is_upsell) {
+                    score += 20;
+                    badge = '✨ Món ăn kèm';
                 }
 
+                // Nếu món đã có trong giỏ hàng, hạ điểm để ưu tiên món mới cho khách
                 if (inCart) {
-                    score -= 150; // Đẩy món đã có trong giỏ về sau
+                    score -= 150;
                 }
 
                 return {
@@ -622,6 +620,7 @@ function gaoApp() {
                 item_type: 'product',
                 product_id: this.customizingItem.db_id || null,
                 sauce_id: null,
+                category: this.customizingItem.category || 'rice',
                 name: this.customizingItem.name,
                 price: this.singleCustomizedPrice,
                 quantity: this.customizingItem.quantity,
