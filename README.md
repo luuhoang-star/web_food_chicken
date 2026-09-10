@@ -1,58 +1,188 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 🍗 GAO - Gà Sốt & Cơm Hà Nội
+> **Hệ Thống Website Đặt Món Trực Tuyến & Quản Trị Nhà Hàng F&B Chuẩn POS/SaaS**
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <img src="https://img.shields.io/badge/Laravel-12.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white" alt="Laravel 12">
+  <img src="https://img.shields.io/badge/PHP-8.4-777BB4?style=for-the-badge&logo=php&logoColor=white" alt="PHP 8.4">
+  <img src="https://img.shields.io/badge/Alpine.js-3.x-8BC0D0?style=for-the-badge&logo=alpinedotjs&logoColor=white" alt="Alpine.js">
+  <img src="https://img.shields.io/badge/TailwindCSS-v4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="TailwindCSS">
+  <img src="https://img.shields.io/badge/MySQL-8.0-4479A1?style=for-the-badge&logo=mysql&logoColor=white" alt="MySQL">
+  <img src="https://img.shields.io/badge/Pest_PHP-Tested_100%25-00D8A5?style=for-the-badge" alt="Pest PHP">
 </p>
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🌟 Tổng Quan Dự Án
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+**GAO - Gà Sốt & Cơm** là nền tảng đặt món ăn trực tuyến chuyên nghiệp được xây dựng tối ưu cho các chuỗi nhà hàng, quán ăn F&B. Dự án kết hợp giữa **trải nghiệm đặt món mượt mà cho thực khách (Storefront UX)** và **hệ thống vận hành, tiếp nhận đơn hàng tức thời cho nhà hàng (Admin POS Dashboard)**.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## ✨ Tính Năng Nổi Bật
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### 🛒 1. Dành Cho Khách Hàng (Storefront)
+- **Giao Diện Hiện Đại & Chuẩn Mobile-First**: Tốc độ tải trang tức thì, hiệu ứng mượt mà, tối ưu hiển thị hoàn hảo trên mọi thiết bị di động và máy tính.
+- **Tuỳ Biến Món Ăn Chuyên Sâu**:
+  - Tự do lựa chọn hương vị sốt độc quyền (Sốt Cay Hàn, Sốt Mật Ong, Sốt Bơ Tỏi, Sốt Chua Ngọt...).
+  - Chọn cấp độ cay phù hợp khẩu vị.
+  - Thêm topping (Trứng ốp la, Phô mai tan chảy, Kim chi...), gọi thêm món ăn kèm và nước ngọt.
+  - Hỗ trợ mua các hũ sốt lẻ hoặc chọn gói Combo tiết kiệm.
+- **Giỏ Hàng Thông Minh (Smart Cart Drawer)**:
+  - Tự động lưu giỏ hàng vào `localStorage` (không sợ mất khi reload trang hoặc mất kết nối).
+  - Thanh tiến trình **Freeship trực quan** thúc đẩy khách đặt thêm món.
+  - Gợi ý **Voucher giảm giá 1-chạm** tự động tính toán mã tối ưu nhất.
+  - **Thuật toán Gợi Ý Món Động (Dynamic Smart Upsell)**: Tự động phân tích ngữ cảnh giỏ hàng (chưa có nước ➔ gợi ý đồ uống, có cơm ➔ gợi ý trứng/canh, có gà chiên ➔ gợi ý khoai/salad).
+- **Thanh Toán Đa Dạng & Tiện Lợi**:
+  - Thanh toán khi nhận hàng (COD).
+  - **VietQR Động**: Tự động sinh mã QR chuẩn Napas247 với chính xác số tiền và cú pháp mã đơn hàng.
+  - Hỗ trợ ví điện tử MoMo, ZaloPay.
+- **Tra Cứu Đơn Hàng Trực Tuyến (`/tra-cuu-don`)**: Khách hàng có thể tra cứu hành trình chuẩn bị món và giao hàng theo Số điện thoại hoặc Mã đơn hàng theo thời gian thực.
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### 📊 2. Dành Cho Quản Trị Nhà Hàng (Admin Dashboard)
+- **Tiếp Nhận Đơn Hàng Thời Gian Thực**:
+  - **Chuông âm thanh + Thông báo Popup** nổi bật ngay khi có đơn hàng mới (Realtime Polling).
+  - Chuyển trạng thái đơn hàng 1-chạm (Chờ duyệt ➔ Đang làm ➔ Đang giao ➔ Hoàn thành).
+  - Huỷ đơn hàng có ghi nhận lý do rõ ràng.
+  - In phiếu chế biến / hoá đơn và xuất báo cáo doanh thu ra file **Excel / CSV**.
+- **Quản Lý Thực Đơn & Giá Bán Tối Ưu (3-Giây Tác Vụ)**:
+  - Sửa giá bán trực tiếp trên bảng và **tự động lưu khi ấn Enter hoặc click ra ngoài**.
+  - Bật / Tắt trạng thái mở bán (`Đang bán` ⇄ `Hết món`) tức thì không cần tải lại trang.
+  - Bật / Tắt quyền gợi ý giỏ hàng (`⭐ Gợi ý` / `☆ Tắt`) cho từng món.
+  - Hỗ trợ thao tác hàng loạt (**Bulk Actions**): Mở bán, Hết món, Bật/Tắt gợi ý, Xoá món.
+- **Quản Lý Danh Mục, Vị Sốt & Topping**: Toàn quyền thêm, sửa, phân loại và sắp xếp thứ tự hiển thị.
+- **Quản Lý Mã Giảm Giá (Coupons)**: Thiết lập mã giảm theo % hoặc số tiền cố định, giá trị đơn tối thiểu, giới hạn mức giảm tối đa.
+- **Quản Lý Nội Dung Trang Chủ**: Tùy chỉnh Banner Hero, khối Cam kết chất lượng, Feedback đánh giá của khách hàng.
+- **Cài Đặt Cửa Hàng & Tích Hợp**:
+  - Thông tin liên hệ, giờ mở - đóng cửa, địa chỉ quán.
+  - Bảng giá phí giao hàng linh hoạt theo từng quận/khu vực.
+  - Cấu hình thông tin tài khoản ngân hàng thụ hưởng VietQR.
+  - **Tích hợp Telegram Bot**: Tự động bắn tin nhắn báo đơn về nhóm chat Telegram của chủ quán / nhân viên bếp.
 
-## Agentic Development
+---
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+## 🛠️ Công Nghệ Sử Dụng (Tech Stack)
+
+| Thành phần | Công nghệ |
+| :--- | :--- |
+| **Backend Framework** | Laravel 12 (PHP 8.4) |
+| **Frontend Reactive** | Alpine.js 3.x + Vanilla JS Store |
+| **UI Styling** | TailwindCSS v4 + Blade Template Engine |
+| **Database** | MySQL 8.0 / MariaDB |
+| **Testing Suite** | Pest PHP 3.x (58+ Feature Tests, Pass 100%) |
+| **Code Formatter** | Laravel Pint (Chuẩn PSR-12 / Laravel Style) |
+| **Integrations** | VietQR API, Telegram Bot Webhook, GitHub CI/CD Deploy Webhook |
+
+---
+
+## 🚀 Hướng Dẫn Cài Đặt & Chạy Cục Bộ
+
+### Yêu cầu môi trường:
+- PHP >= 8.2 (Khuyên dùng PHP 8.4)
+- Composer >= 2.x
+- Node.js >= 18.x & NPM
+- MySQL >= 8.0 hoặc MariaDB
+- Tiện ích mở rộng PHP: `bcmath`, `curl`, `mbstring`, `openssl`, `pdo_mysql`, `tokenizer`, `xml`
+
+### Các bước cài đặt:
 
 ```bash
-composer require laravel/boost --dev
+# 1. Clone mã nguồn về máy
+git clone https://github.com/luuhoang-star/web_food_chicken.git
+cd web_food_chicken
 
-php artisan boost:install
+# 2. Cài đặt các gói phụ thuộc PHP và JavaScript
+composer install
+npm install
+
+# 3. Tạo file cấu hình môi trường (.env)
+cp .env.example .env
+php artisan key:generate
+
+# 4. Cấu hình kết nối Cơ sở dữ liệu trong file .env
+# DB_CONNECTION=mysql
+# DB_HOST=127.0.0.1
+# DB_PORT=3306
+# DB_DATABASE=chicken_db
+# DB_USERNAME=root
+# DB_PASSWORD=
+
+# 5. Chạy Migration và nạp dữ liệu mẫu đầy đủ (Thực đơn, Sốt, Topping, Đơn hàng, Tài khoản Admin)
+php artisan migrate:fresh --seed
+
+# 6. Biên dịch giao diện Frontend
+npm run build
+# hoặc chạy chế độ phát triển:
+npm run dev
+
+# 7. Khởi chạy máy chủ nội bộ
+php artisan serve
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+> Nếu sử dụng **Laravel Herd** hoặc **Laragon / Valet**, bạn có thể truy cập trực tiếp qua domain ảo: `http://chicken.test`
 
-## Contributing
+---
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## 🔐 Tài Khoản Quản Trị Mặc Định
 
-## Code of Conduct
+Sau khi chạy lệnh `php artisan db:seed`, bạn có thể đăng nhập vào trang quản trị:
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+- **Đường dẫn Admin**: `/admin/login` (hoặc `http://chicken.test/admin`)
+- **Email đăng nhập**: `admin@gao.vn`
+- **Mật khẩu**: `password` (hoặc `admin123`)
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## 🧪 Kiểm Thử & Đảm Bảo Chất Lượng
 
-## License
+Dự án được bao phủ toàn diện với bộ test Feature Tests (Pest PHP):
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+# Chạy toàn bộ test suite
+php artisan test
+
+# Chạy test với định dạng rút gọn
+php artisan test --compact
+
+# Kiểm tra và tự động định dạng mã nguồn theo chuẩn Laravel Pint
+vendor/bin/pint --format agent
+```
+
+---
+
+## 📂 Cấu Trúc Thư Mục Chính
+
+```text
+app/
+├── Http/Controllers/
+│   ├── Admin/                  # Bộ điều khiển dành cho trang Quản trị (Orders, Products, Sauces, Settings...)
+│   ├── HomeController.php      # Trang chủ & Giới thiệu
+│   ├── MenuController.php      # Thực đơn & Đặt món
+│   ├── OrderController.php     # Xử lý tạo đơn hàng & Áp dụng coupon
+│   └── OrderTrackingController.php # Tra cứu hành trình đơn
+├── Models/                     # Eloquent Models (Order, Product, Sauce, Coupon, SiteSetting...)
+├── Services/                   # Business Logic & Telegram Notification Service
+└── View/Composers/             # GaoStoreComposer nạp dữ liệu toàn cục tối ưu cache
+
+resources/
+├── views/
+│   ├── admin/                  # Giao diện quản trị Admin POS
+│   ├── layouts/                # Base layouts (app, admin)
+│   ├── modals/                 # Modal tuỳ chỉnh món, giỏ hàng (Cart Drawer), checkout
+│   ├── pages/                  # Trang chủ, Thực đơn, Tra cứu đơn
+│   └── sections/               # Các khối thành phần giao diện
+
+public/
+├── js/gao-store.js             # Alpine.js Global State & Smart Dynamic Upsell Engine
+└── images/                     # Tài nguyên hình ảnh món ăn & banner
+```
+
+---
+
+## 📄 Bản Quyền & Giấy Phép
+
+Dự án được phát triển và phát hành dưới giấy phép mã nguồn mở **[MIT License](LICENSE)**.
+
+---
+<p align="center">Được phát triển với đam mê dành cho ẩm thực gà sốt hảo hạng 🍗✨</p>
